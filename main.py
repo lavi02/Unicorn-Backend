@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 
+from .src.database.__conn__ import conn
+
 app = FastAPI()
 
 
