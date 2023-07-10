@@ -1,6 +1,6 @@
 from pydantic import BaseModel
+from sqlalchemy import Column, String, inspect
 
-from sqlalchemy import Column, String
 from .__conn__ import *
 
 class UserTable(Base): # 유저 테이블
@@ -24,7 +24,8 @@ class User(BaseModel): # 유저
 # <class 'sqlalchemy.engine.base.Connection'>
 
 
-if not conn.engineData().has_table('user'):
+inspector = inspect(conn.engineData())
+if not inspector.has_table('user'):
     UserTable.__table__.create(bind=conn.engineData())
     print("테이블 생성 완료")
 else:

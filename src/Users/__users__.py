@@ -24,6 +24,7 @@ async def login(user_id: str, user_pw: str):
 @app.post("/api/user/register")
 async def create(user: User):
     try:
+        session = conn.rdsSession()
         new_user = UserTable(
             user_name=user.user_name,
             user_id=user.user_id,
@@ -31,9 +32,8 @@ async def create(user: User):
             user_email=user.user_email,
             user_phone=user.user_phone
         )
-        conn.rdsSession().add(new_user)
-        result = conn.rdsSession().commit()
-        print(result)
+        session.add(new_user)
+        session.commit()
 
         return {"message": "success", "data": user}
     except Exception as e:
