@@ -25,14 +25,7 @@ class CONNECT:
         self.PASSWORD: str = "localplayer0"
         self.ENDPOINT: str = "localhost"
         self.DBNAME: str = "develop"
-        self.PASSWORD: str = "localplayer0"
-        self.ENDPOINT: str = "localhost"
-        self.DBNAME: str = "develop"
         self.PORT: str = "3306"
-        self.rds = create_engine(
-                f"mysql+pymysql://{self.USERNAME}:{self.PASSWORD}@{self.ENDPOINT}:{self.PORT}/{self.DBNAME}?charset=utf8",
-                echo=True
-            )
         self.rds = create_engine(
                 f"mysql+pymysql://{self.USERNAME}:{self.PASSWORD}@{self.ENDPOINT}:{self.PORT}/{self.DBNAME}?charset=utf8",
                 echo=True
@@ -81,9 +74,7 @@ class CONNECT:
             )
 
             return session
-            return session
         except Exception as e:
-            return str(e)
             return str(e)
 
     def redisConnect(self, dbname: str):
@@ -105,5 +96,4 @@ class CONNECT:
 
 
 conn = CONNECT()
-Base.query = conn.rdsSession().query_property()
 Base.query = conn.rdsSession().query_property()
