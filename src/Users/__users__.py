@@ -3,12 +3,12 @@ from src.database.__user__ import UserTable, User
 
 from src.settings.dependency import app
 
-@app.get("/api/user/list")
+@app.get("/api/v1/user/list")
 async def users():
     users = conn.rdsSession().query(UserTable).all()
     return users
 
-@app.get("/api/user/login")
+@app.get("/api/v1/user/login")
 async def login(user_id: str, user_pw: str):
     try:
         user = conn.rdsSession().query(UserTable).filter_by(user_id=user_id, user_pw=user_pw).first()
@@ -21,7 +21,7 @@ async def login(user_id: str, user_pw: str):
 
 # json 형식으로 데이터를 받아올 때는 request body에 데이터를 넣어서 보내야 한다.
 # json 형식으로 데이터를 보낼 때는 json.dumps()를 사용한다.
-@app.post("/api/user/register")
+@app.post("/api/v1/user/register")
 async def create(user: User):
     try:
         session = conn.rdsSession()
@@ -39,7 +39,7 @@ async def create(user: User):
     except Exception as e:
         return {"message": str(e)}
     
-@app.put("/api/user/update")
+@app.put("/api/v1/user/update")
 async def update(user: User):
     try:
         update_user = conn.rdsSession().query(UserTable).filter_by(id=user.id).first()
@@ -53,7 +53,7 @@ async def update(user: User):
     except Exception as e:
         return {"message": str(e)}
     
-@app.delete("/api/user/delete")
+@app.delete("/api/v1/user/delete")
 async def delete(user_id: str):
     try:
         delete_user = conn.rdsSession().query(UserTable).filter_by(user_id=user_id).first()
