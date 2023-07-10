@@ -1,8 +1,11 @@
 import boto3
-import pymysql
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.schema import CreateTable
+from sqlalchemy.ext.declarative import declarative_base
 import redis
-from datetime import datetime, timedelta
 
+Base = declarative_base()
 
 class CONNECT:
     """
@@ -19,18 +22,21 @@ class CONNECT:
         self.BUCKET: str = ""
 
         # rds settings
-        self.RDSNAME: str = ""
         self.USERNAME: str = "dev"
-        self.PASSWORD: str = ""
-        self.ENDPOINT: str = ""
-        self.DBNAME: str = "unicorn-dev"
+        self.PASSWORD: str = "localplayer0"
+        self.ENDPOINT: str = "localhost"
+        self.DBNAME: str = "develop"
         self.PORT: str = "3306"
+        self.rds = create_engine(
+                f"mysql+pymysql://{self.USERNAME}:{self.PASSWORD}@{self.ENDPOINT}:{self.PORT}/{self.DBNAME}?charset=utf8",
+                echo=True
+            )
 
         # redis settigns
         self.REDIS_HOSTNAME: str = "localhost"
         self.REDIS_PORT: str = "6379"
         self.REDIS_DBNAME: str = ""
-
+    
     def s3Session(self, filePath: str, fileName: str):
         """
         Args:
@@ -49,21 +55,24 @@ class CONNECT:
 
         except Exception as e:
             return (str(e))
-
+        
+    def engineData(self):
+        return self.rds
+    
     def rdsSession(self):
         try:
-            rds = pymysql.connect(
-                host=self.ENDPOINT,
-                user=self.USERNAME,
-                password=self.PASSWORD,
-                db=self.DBNAME,
-                port=self.PORT,
-                charset="utf8"
+            rds = self.rds
+            session = scoped_session(
+                sessionmaker(
+                    autocommit=False,
+                    autoflush=False,
+                    bind=rds
+                )
             )
 
-            return rds
+            return session
         except Exception as e:
-            return (str(e))
+            return str(e)
 
     def redisConnect(self, dbname: str):
         """
@@ -84,3 +93,4 @@ class CONNECT:
 
 
 conn = CONNECT()
+Base.query = conn.rdsSession().query_property()
