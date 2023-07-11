@@ -1,9 +1,12 @@
 from os import urandom
 from typing import Union, Optional
+from typing_extensions import Annotated
+
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from src.database.__conn__ import *
@@ -15,6 +18,7 @@ secret_key = urandom(24)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2 = OAuth2PasswordBearer(tokenUrl="token")
 
 class Token(BaseModel):
     access_token: str
@@ -64,9 +68,9 @@ def createAccessToken(data: dict, expires_delta: Optional[timedelta] = None):
     """
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone('Asia/Seoul')) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone('Asia/Seoul')) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=ALGORITHM)
