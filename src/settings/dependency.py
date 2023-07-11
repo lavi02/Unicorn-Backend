@@ -1,4 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
+from fastapi_sessions.frontends.implementations import SessionCookie, CookieParameters
+from fastapi_sessions.backends.implementations import InMemoryBackend
+from fastapi_sessions.session_verifier import SessionVerifier
+from uuid import UUID, uuid4
 from starlette.middleware.cors import CORSMiddleware
 
 tags_metadata = [

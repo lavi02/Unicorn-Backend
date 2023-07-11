@@ -1,4 +1,4 @@
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from src.database.__conn__ import conn
 from src.database.__user__ import UserTable, User
@@ -6,6 +6,67 @@ from src.settings.dependency import *
 from src.Users.hash import *
 
 from src.settings.dependency import app
+
+class sessionData(BaseModel):
+    user_id: str
+
+cookie_params = CookieParameters()
+backend = InMemoryBackend[UUID, sessionData]()
+redisSession = redisData(conn.redisConnect("session"))
+
+cookie = SessionCookie(
+    cookie_name="uid64",
+    identifier="general_verifier",
+    auto_error=True,
+    secret_key=secret_key,
+    cookie_params=cookie_params
+)
+async def save_cookie(response: JSONResponse):
+    await response
+
+class verifySession(SessionVerifier[UUID, sessionData]):
+    def __init__(
+        self,
+        *,
+        identifier: str,
+        auto_error: bool,
+        backend: InMemoryBackend[UUID, sessionData],
+        auth_http_exception: HTTPException,
+    ):
+        self._identifier = identifier
+        self._auto_error = auto_error
+        self._backend = backend
+        self._auth_http_exception = auth_http_exception
+
+    @property
+    def identifier(self):
+        return self._identifier
+
+    @property
+    def backend(self):
+        return self._backend
+
+    @property
+    def auto_error(self):
+        return self._auto_error
+
+    @property
+    def auth_http_exception(self):
+        return self._auth_http_exception
+
+    def verify_session(self, model: sessionData) -> bool:
+        """
+        If the session exists, it is valid
+        """
+        return True
+    
+verifySessionResult = verifySession(
+    identifier="general_verifier",
+    auto_error=True,
+    backend=backend,
+    auth_http_exception=HTTPException(status_code=401, detail="Unauthorized")
+)
+        
 
 @app.get(
         "/api/v1/user/list", description="유저 목록 조회",
@@ -29,13 +90,27 @@ async def users():
     )
 async def login(user_id: str, user_pw: str):
     try:
+        sessionUID = uuid4()
         user = conn.rdsSession().query(UserTable).filter_by(user_id=user_id, user_pw=user_pw).first()
         if user:
-            return {"message": "success"}
+            result = sessionData(user_id=user_id)
+            await backend.create(sessionUID, result)
+
+            # redis에도 저장. expired 하루. 문자열로 result 저장
+            strUID = str(sessionUID)
+            if redisSession.setData(strUID, user_id, 86400):
+
+                response = JSONResponse({"message": "success"})
+                cookie.attach_to_response(response, sessionUID)
+
+                return response
+
+            else:
+                return {"message": "redis error"}
         else:
             return {"message": f"{user_id} is not found"}
     except Exception as e:
-        return {"message": str(e)}
+        return HTTPException(status_code=400, detail=str(e))
 
 # json 형식으로 데이터를 받아올 때는 request body에 데이터를 넣어서 보내야 한다.
 # json 형식으로 데이터를 보낼 때는 json.dumps()를 사용한다.
@@ -62,7 +137,7 @@ async def create(user: User):
 
         return {"message": "success", "data": user}
     except Exception as e:
-        return {"message": str(e)}
+        raise HTTPException(status_code=400, detail=str(e))
     
 @app.put(
         "/api/v1/user/update", description="유저 정보 수정",
@@ -83,7 +158,7 @@ async def update(user: User):
         conn.rdsSession().commit()
         return {"message": "success"}
     except Exception as e:
-        return {"message": str(e)}
+        raise HTTPException(status_code=400, detail=str(e))
     
 @app.delete("/api/v1/user/delete")
 async def delete(user_id: str):
@@ -93,49 +168,36 @@ async def delete(user_id: str):
         conn.rdsSession().commit()
         return {"message": "success"}
     except Exception as e:
-        return {"message": str(e)}
+        return HTTPException(status_code=400, detail=str(e))
     
-async def isCurrentUser(token: Annotated[str, Depends(oauth2)], user_id: str, password: str):
-    credentialException = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
 
+@app.get("/api/v1/user/logout")
+async def logout(response: Response, sessionUID: UUID = Depends(cookie)):
     try:
-        payload = jwt.decode(token, secret_key, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentialException
-        token_data = TokenData(username=username)
-    except JWTError:
-        raise credentialException
-    hasedPassword = generateHash(password)
-    user = conn.rdsSession().query(UserTable).filter_by(user_id=user_id, user_pw=hasedPassword).first()
+        await backend.delete(sessionUID)
+        cookie.delete_from_response(response)
 
+        # redis에서도 삭제
+        redisSession.deleteData(str(sessionUID))
 
-# get AccessToken
-@app.post(
-        "/api/v1/user/token", response_model=Token,
-        description="유저 토큰 발급",
-        status_code=status.HTTP_200_OK, response_class=JSONResponse,
-        responses={
-            200: { "description": "성공" },
-            400: { "description": "실패" }
-        }, tags=["user"]
-    )
-async def loginForAccessToken(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-    user = auth(form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = createAccessToken(
-        data={"sub": user.user_id}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+        return {"message": "success"}
+    except Exception as e:
+        return HTTPException(status_code=400, detail=str(e))
     
+
+# check session
+@app.get("/api/v1/user/check")
+async def check(sessionUID: UUID = Depends(cookie)):
+    try:
+        await backend.read(sessionUID)
+
+        # redis에 없으면 세션에서도 삭제
+        if not redisSession.getData(str(sessionUID)):
+            try:
+                await backend.delete(sessionUID)
+
+                return {"message": True}
+            except Exception as e:
+                return HTTPException(status_code=400, detail="session not found")
+    except Exception as e:
+        return HTTPException(status_code=400, detail=str(e))
