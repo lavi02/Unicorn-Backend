@@ -34,7 +34,7 @@ class CONNECT:
         # redis settigns
         self.REDIS_HOSTNAME: str = "localhost"
         self.REDIS_PORT: str = "6379"
-        self.REDIS_DBNAME: str = "dev"
+        self.REDIS_DBNAME: int = 0
     
     def s3Session(self, filePath: str, fileName: str):
         """
@@ -86,7 +86,7 @@ class CONNECT:
             conn = redis.StrictRedis(
                 host=self.REDIS_HOSTNAME,
                 port=self.REDIS_PORT,
-                db=self.DBNAME
+                db=self.REDIS_DBNAME
             )
 
             return conn

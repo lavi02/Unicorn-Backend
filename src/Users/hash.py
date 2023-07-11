@@ -1,10 +1,8 @@
 from os import urandom
-from typing import Union, Optional
-from typing_extensions import Annotated
+import redis
 
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
-from jose import JWTError, jwt
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -18,14 +16,6 @@ secret_key = urandom(24)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2 = OAuth2PasswordBearer(tokenUrl="token")
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-class TokenData(BaseModel):
-    username: Union[str, None] = None
 
 def verify(plain: str, hashed: str) -> bool:
     """
@@ -54,24 +44,16 @@ def auth(user_id: str, password: str):
         return user
     except Exception as e:
         return False
-    
-def createAccessToken(data: dict, expires_delta: Optional[timedelta] = None):
-    """
-    토큰 생성
 
-    Args:
-        data (dict): 토큰에 담을 데이터
-        expires_delta (Optional[timedelta], optional): 토큰 만료 시간. Defaults to None.
-
-    Returns:
-        [type]: [description]
-    """
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone('Asia/Seoul')) + expires_delta
-    else:
-        expire = datetime.now(timezone('Asia/Seoul')) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+class redisData:
+    def __init__(self, conn: redis.StrictRedis):
+        self.conn = conn
     
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=ALGORITHM)
-    return encoded_jwt
+    def setData(self, key: str, value: str, expireDate: int):
+        return self.conn.setex(name=key, value=value, time=expireDate)
+    
+    def getData(self, key: str):
+        return self.conn.get(key)
+    
+    def deleteData(self, key: str):
+        return self.conn.delete(key)
