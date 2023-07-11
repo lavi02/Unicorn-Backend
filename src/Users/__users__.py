@@ -1,5 +1,6 @@
 from src.database.__conn__ import conn
 from src.database.__user__ import UserTable, User
+from src.Users.hash import *
 
 from src.settings.dependency import app
 
@@ -62,3 +63,40 @@ async def delete(user_id: str):
         return {"message": "success"}
     except Exception as e:
         return {"message": str(e)}
+    
+async def isCurrentUser(token: Annotated[str, Depends(oauth2)], user_id: str, password: str):
+    credentialException = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt.decode(token, secret_key, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentialException
+        token_data = TokenData(username=username)
+    except JWTError:
+        raise credentialException
+    hasedPassword = generateHash(password)
+    user = conn.rdsSession().query(UserTable).filter_by(user_id=user_id, user_pw=hasedPassword).first()
+
+
+# get AccessToken
+@app.post("/api/v1/user/token", response_model=Token)
+async def loginForAccessToken(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+    user = auth(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = createAccessToken(
+        data={"sub": user.user_id}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+    

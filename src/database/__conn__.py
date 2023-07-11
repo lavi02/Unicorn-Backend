@@ -1,7 +1,6 @@
 import boto3
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
-from sqlalchemy.schema import CreateTable
 from sqlalchemy.ext.declarative import declarative_base
 import redis
 
@@ -35,7 +34,7 @@ class CONNECT:
         # redis settigns
         self.REDIS_HOSTNAME: str = "localhost"
         self.REDIS_PORT: str = "6379"
-        self.REDIS_DBNAME: str = ""
+        self.REDIS_DBNAME: str = "dev"
     
     def s3Session(self, filePath: str, fileName: str):
         """
@@ -55,6 +54,10 @@ class CONNECT:
 
         except Exception as e:
             return (str(e))
+        
+    def engineData(self):
+        return self.rds
+    
         
     def engineData(self):
         return self.rds
