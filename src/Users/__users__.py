@@ -1,15 +1,32 @@
+from fastapi.responses import JSONResponse
+
 from src.database.__conn__ import conn
 from src.database.__user__ import UserTable, User
+from src.settings.dependency import *
 from src.Users.hash import *
 
 from src.settings.dependency import app
 
-@app.get("/api/v1/user/list")
+@app.get(
+        "/api/v1/user/list", description="유저 목록 조회",
+        status_code=status.HTTP_200_OK, response_class=JSONResponse,
+        responses={
+            200: { "description": "성공" },
+            400: { "description": "실패" }
+        }, tags=["user"]
+    )
 async def users():
     users = conn.rdsSession().query(UserTable).all()
     return users
 
-@app.get("/api/v1/user/login")
+@app.get(
+        "/api/v1/user/login", description="유저 로그인",
+        status_code=status.HTTP_200_OK, response_class=JSONResponse,
+        responses={
+            200: { "description": "성공" },
+            400: { "description": "실패" }
+        }, tags=["user"]
+    )
 async def login(user_id: str, user_pw: str):
     try:
         user = conn.rdsSession().query(UserTable).filter_by(user_id=user_id, user_pw=user_pw).first()
@@ -22,7 +39,14 @@ async def login(user_id: str, user_pw: str):
 
 # json 형식으로 데이터를 받아올 때는 request body에 데이터를 넣어서 보내야 한다.
 # json 형식으로 데이터를 보낼 때는 json.dumps()를 사용한다.
-@app.post("/api/v1/user/register")
+@app.post(
+        "/api/v1/user/register", description="유저 등록",
+        status_code=status.HTTP_200_OK, response_class=JSONResponse,
+        responses={
+            200: { "description": "성공" },
+            400: { "description": "실패" }
+        }, tags=["user"]
+    )
 async def create(user: User):
     try:
         session = conn.rdsSession()
@@ -40,7 +64,14 @@ async def create(user: User):
     except Exception as e:
         return {"message": str(e)}
     
-@app.put("/api/v1/user/update")
+@app.put(
+        "/api/v1/user/update", description="유저 정보 수정",
+        status_code=status.HTTP_200_OK, response_class=JSONResponse,
+        responses={
+            200: { "description": "성공" },
+            400: { "description": "실패" }
+        }, tags=["user"]
+    )
 async def update(user: User):
     try:
         update_user = conn.rdsSession().query(UserTable).filter_by(id=user.id).first()
@@ -84,7 +115,15 @@ async def isCurrentUser(token: Annotated[str, Depends(oauth2)], user_id: str, pa
 
 
 # get AccessToken
-@app.post("/api/v1/user/token", response_model=Token)
+@app.post(
+        "/api/v1/user/token", response_model=Token,
+        description="유저 토큰 발급",
+        status_code=status.HTTP_200_OK, response_class=JSONResponse,
+        responses={
+            200: { "description": "성공" },
+            400: { "description": "실패" }
+        }, tags=["user"]
+    )
 async def loginForAccessToken(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     user = auth(form_data.username, form_data.password)
     if not user:
