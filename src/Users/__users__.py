@@ -78,6 +78,7 @@ verifySessionResult = verifySession(
     )
 async def users():
     users = conn.rdsSession().query(UserTable).all()
+    conn.rdsSession().close()
     return users
 
 @app.get(
@@ -94,6 +95,7 @@ async def login(user_id: str, user_pw: str):
 
         
         user = conn.rdsSession().query(UserTable).filter_by(user_id=user_id).first()
+        conn.rdsSession().close()
         if user is None:
             return {"message": f"{user_id} is not found"}
         
@@ -147,6 +149,7 @@ async def create(user: User):
         )
         session.add(new_user)
         session.commit()
+        session.close()
 
         return {"message": "success", "data": user}
     except Exception as e:
@@ -170,6 +173,7 @@ async def update(user: User):
         update_user.user_email = user.user_email
         update_user.user_phone = user.user_phone
         conn.rdsSession().commit()
+        conn.rdsSession().close()
         return {"message": "success"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -188,6 +192,7 @@ async def delete(user_id: str):
         delete_user = conn.rdsSession().query(UserTable).filter_by(user_id=user_id).first()
         conn.rdsSession().delete(delete_user)
         conn.rdsSession().commit()
+        conn.rdsSession().close()
         return {"message": "success"}
     
     # 세션 없을 때
