@@ -17,33 +17,14 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def verify(plain: str, hashed: str) -> bool:
-    """
-    비밀번호 검증
-
-    Args:
-        plain (str): 평문
-        hashed (str): 해시된 비밀번호
-
-    Returns:
-        bool: 검증 결과
-    """
-    return pwd_context.verify(plain, hashed)
-
-def generateHash(password):
-    return pwd_context.hash(password)
-
-def auth(user_id: str, password: str):
-    try:
-        hasedPassword = generateHash(password)
-        user = conn.rdsSession().query(UserTable).filter_by(user_id=user_id, user_pw=hasedPassword).first()
-        if not user:
-            return False
-        if not verify(password, user.user_pw):
-            return False
-        return user
-    except Exception as e:
-        return False
+class hashData():
+    @staticmethod
+    def verify_password(plain, hashed):
+        return pwd_context.verify(plain, hashed)
+    
+    @staticmethod
+    def get_password_hash(password):
+        return pwd_context.hash(password)
 
 class redisData:
     def __init__(self, conn: redis.StrictRedis):

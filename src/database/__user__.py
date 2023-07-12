@@ -27,6 +27,3 @@ class User(BaseModel): # 유저
 inspector = inspect(conn.engineData())
 if not inspector.has_table('user'):
     UserTable.__table__.create(bind=conn.engineData())
-    print("테이블 생성 완료")
-else:
-    print("이미 테이블이 존재합니다.")

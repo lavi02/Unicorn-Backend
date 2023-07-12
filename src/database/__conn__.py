@@ -30,6 +30,14 @@ class CONNECT:
                 f"mysql+pymysql://{self.USERNAME}:{self.PASSWORD}@{self.ENDPOINT}:{self.PORT}/{self.DBNAME}?charset=utf8",
                 echo=True
             )
+        
+        self.session = scoped_session(
+                sessionmaker(
+                    autocommit=False,
+                    autoflush=False,
+                    bind=self.rds
+                )
+            )
 
         # redis settigns
         self.REDIS_HOSTNAME: str = "localhost"
@@ -64,16 +72,7 @@ class CONNECT:
     
     def rdsSession(self):
         try:
-            rds = self.rds
-            session = scoped_session(
-                sessionmaker(
-                    autocommit=False,
-                    autoflush=False,
-                    bind=rds
-                )
-            )
-
-            return session
+            return self.session
         except Exception as e:
             return str(e)
 
