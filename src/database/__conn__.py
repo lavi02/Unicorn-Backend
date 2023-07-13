@@ -31,13 +31,11 @@ class CONNECT:
                 echo=True
             )
         
-        self.session = scoped_session(
-                sessionmaker(
+        self.session = sessionmaker(
                     autocommit=False,
                     autoflush=False,
                     bind=self.rds
                 )
-            )
 
         # redis settigns
         self.REDIS_HOSTNAME: str = "localhost"
@@ -95,4 +93,4 @@ class CONNECT:
 
 
 conn = CONNECT()
-Base.query = conn.rdsSession().query_property()
+Session = conn.rdsSession()

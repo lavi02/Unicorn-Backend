@@ -1,7 +1,7 @@
 from os import urandom
 import redis
 
-from passlib.context import CryptContext
+from passlib.hash import oracle10
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, FastAPI, HTTPException, status
@@ -12,19 +12,19 @@ from src.database.__user__ import *
 
 from src.settings.dependency import *
 
-secret_key = urandom(24)
+secret_key = urandom(32)
+hashCode = "Hello_neighbor"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class hashData():
     @staticmethod
     def verify_password(plain, hashed):
-        return pwd_context.verify(plain, hashed)
+        return oracle10.verify(hashCode, hashed, plain)
     
     @staticmethod
     def get_password_hash(password):
-        return pwd_context.hash(password)
+        return oracle10.hash(hashCode, password)
 
 class redisData:
     def __init__(self, conn: redis.StrictRedis):

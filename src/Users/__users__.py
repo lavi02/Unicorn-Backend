@@ -4,8 +4,9 @@ from src.database.__conn__ import conn
 from src.database.__user__ import UserTable, User
 from src.settings.dependency import *
 from src.Users.hash import *
+from src.Users.__crud__ import UserCommands
 
-from src.settings.dependency import app
+from src.settings.dependency import app, sessionFix
 
 class sessionData(BaseModel):
     user_id: str
@@ -77,9 +78,9 @@ verifySessionResult = verifySession(
         }, tags=["user"]
     )
 async def users():
-    users = conn.rdsSession().query(UserTable).all()
-    conn.rdsSession().close()
-    return users
+    with sessionFix() as session:
+        user = UserCommands().read(session, UserTable)
+        return user
 
 @app.get(
         "/api/v1/user/login", description="유저 로그인",
@@ -91,36 +92,31 @@ async def users():
     )
 async def login(user_id: str, user_pw: str):
     try:
-        sessionUID = uuid4()
+        with sessionFix() as session:
+            sessionUID = uuid4()
+            user = UserCommands().read(session, UserTable, id=user_id)
+            if user is None:
+                return {"message": f"{user_id} is not found"}
+            
+            # password hash 검증
+            # id가 localplayer0, password가 test2인 경우도 로그인 가능
+            isUser = hashData.verify_password(user_pw, user.user_pw)
+            if isUser:
+                result = sessionData(user_id=user_id)
+                await backend.create(sessionUID, result)
 
-        
-        user = conn.rdsSession().query(UserTable).filter_by(user_id=user_id).first()
-        conn.rdsSession().close()
-        if user is None:
-            return {"message": f"{user_id} is not found"}
-        
-        # password hash 검증
-        # id가 localplayer0, password가 test2인 경우도 로그인 가능
-        hashed_user_pw = hashData.get_password_hash(user_pw)
-        isUser = True if user_id == "localplayer0" and user.user_pw == user_pw \
-            else hashData.verify_password(user_pw, user.user_pw)
-        if isUser:
-            result = sessionData(user_id=user_id)
-            await backend.create(sessionUID, result)
+                    # redis에도 저장. expired 하루. 문자열로 result 저장
+                if redisSession.setData(str(sessionUID), user_id, 86400):
 
-            # redis에도 저장. expired 하루. 문자열로 result 저장
-            strUID = str(sessionUID)
-            if redisSession.setData(strUID, user_id, 86400):
+                    response = JSONResponse({"message": "success"})
+                    cookie.attach_to_response(response, sessionUID)
 
-                response = JSONResponse({"message": "success"})
-                cookie.attach_to_response(response, sessionUID)
+                    return response
 
-                return response
-
+                else:
+                    return {"message": "redis error"}
             else:
-                return {"message": "redis error"}
-        else:
-            return {"message": "password is not correct"}
+                return {"message": "password is not correct"}
     except Exception as e:
         return HTTPException(status_code=400, detail=str(e))
 
@@ -136,22 +132,19 @@ async def login(user_id: str, user_pw: str):
     )
 async def create(user: User):
     try:
-        # 비밀번호 해싱
-        user.user_pw = hashData.get_password_hash(user.user_pw)
-        session = conn.rdsSession()
+        with sessionFix() as session:
+            # 비밀번호 해싱
+            user.user_pw = hashData.get_password_hash(user.user_pw)
 
-        new_user = UserTable(
-            user_name=user.user_name,
-            user_id=user.user_id,
-            user_pw=user.user_pw,
-            user_email=user.user_email,
-            user_phone=user.user_phone
-        )
-        session.add(new_user)
-        session.commit()
-        session.close()
-
-        return {"message": "success", "data": user}
+            new_user = UserTable(
+                user_name=user.user_name,
+                user_id=user.user_id,
+                user_pw=user.user_pw,
+                user_email=user.user_email,
+                user_phone=user.user_phone
+            )
+            result = UserCommands().create(session, new_user)
+            return {"message": result}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
@@ -164,19 +157,17 @@ async def create(user: User):
         }, tags=["user"]
     )
 async def update(user: User):
-    try:
-        update_user = conn.rdsSession().query(UserTable).filter_by(id=user.id).first()
+    with sessionFix() as session:
+        update_user = UserCommands().read(session, UserTable, id=user.user_id)
 
         update_user.user_name = user.user_name
         update_user.user_id = user.user_id
         update_user.user_pw = user.user_pw
         update_user.user_email = user.user_email
         update_user.user_phone = user.user_phone
-        conn.rdsSession().commit()
-        conn.rdsSession().close()
-        return {"message": "success"}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+
+        result = UserCommands().update(session, UserTable, update_user)
+        return result
     
 @app.delete(
         "/api/v1/user/delete", description="유저 삭제",
@@ -189,12 +180,9 @@ async def update(user: User):
     )
 async def delete(user_id: str):
     try:
-        delete_user = conn.rdsSession().query(UserTable).filter_by(user_id=user_id).first()
-        conn.rdsSession().delete(delete_user)
-        conn.rdsSession().commit()
-        conn.rdsSession().close()
-        return {"message": "success"}
-    
+        with sessionFix() as session:
+            result = UserCommands().delete(session, UserTable, user_id)
+            return {"message": result}
     # 세션 없을 때
     except HTTPException as e:
         if HTTPException.status_code == 401:

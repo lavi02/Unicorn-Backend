@@ -8,7 +8,8 @@ from src.settings.check_session import check_session
 from src.Users.__users__ import *
 from src.Users.hash import *
 
-from src.settings.dependency import app
+from src.stocks.__crud__ import CartCommands
+from src.settings.dependency import app, sessionFix
 
 
 # 장바구니 추가
@@ -21,25 +22,21 @@ from src.settings.dependency import app
             401: { "description": "권한 없음" }
         }, tags=["stocks"]
     )
-async def addCart(
-    cart: Cart,
-    sessionUID: UUID = Depends(cookie),
-):
+async def addCart(cart: Cart, sessionUID: UUID = Depends(cookie)):
     isSession = await check_session(sessionUID)
     if isSession:
-        session = conn.rdsSession()
-        user_id = isSession.user_id
-
-        cart = CartTable(
-            user_id=user_id,
-            product_id=cart.product_id,
-            product_price=cart.product_price,
-            product_count=cart.product_count
-        )
-        session.add(cart)
-        session.commit()
-        session.close()
-        return {"message": "장바구니에 추가되었습니다."}
+        with sessionFix() as session:
+            new_cart = CartTable(
+                user_id=isSession.user_id,
+                product_id=cart.product_id,
+                product_price=cart.product_price,
+                product_count=cart.product_count
+            )
+            if CartCommands().create(session, new_cart) == None:
+                return {"message": "success"}
+            else:
+                return HTTPException(status_code=400, detail="fail")
+            
     else:
         return {"message": "로그인이 필요합니다."}
     
@@ -56,9 +53,12 @@ async def addCart(
 async def cartList(sessionUID: UUID = Depends(cookie)):
     isSession = await check_session(sessionUID)
     if isSession:
-        cart = conn.rdsSession().query(CartTable).all()
-        conn.rdsSession().close()
-        return cart
+        try:
+            with sessionFix() as session:
+                cart = CartCommands().read(session, CartTable)
+                return cart
+        except:
+            return HTTPException(status_code=400, detail="fail")
     else:
         return {"message": "로그인이 필요합니다."}
     
@@ -77,12 +77,9 @@ async def cartList(sessionUID: UUID = Depends(cookie)):
 async def cartList(sessionUID: UUID = Depends(cookie)):
     isSession = await check_session(sessionUID)
     if isSession:
-        user_id = isSession.user_id
-        cart = conn.rdsSession().query(CartTable).filter_by(user_id=user_id).all()
-        conn.rdsSession().close()
-
-        # json response
-        return cart
+        with sessionFix() as session:
+            cart = CartCommands().read(session, CartTable, id=isSession.user_id)
+            return cart
     else:
         return {"message": "로그인이 필요합니다."}
 
@@ -103,13 +100,9 @@ async def deleteCart(
 ):
     isSession = await check_session(sessionUID)
     if isSession:
-        user_id = isSession.user_id
-        cart = conn.rdsSession().query(CartTable).filter_by(
-            user_id=user_id, product_id=product_id).first()
-        conn.rdsSession().delete(cart)
-        conn.rdsSession().commit()
-        conn.rdsSession().close()
-        return {"message": "장바구니에서 삭제되었습니다."}
+        with sessionFix() as session:
+            cart = CartCommands().delete(session, CartTable, user_id=isSession.user_id, product_id=product_id)
+            return {"message": "장바구니에서 삭제되었습니다."}
     else:
         return {"message": "로그인이 필요합니다."}
     
@@ -126,22 +119,17 @@ async def deleteCart(
         }, tags=["stocks"]
     )
 async def updateCart(
-    product_id: str,
-    product_count: int,
+    cart: Cart,
     sessionUID: UUID = Depends(cookie),
 ):
     isSession = await check_session(sessionUID)
     if isSession:
-        user_id = isSession.user_id
-        cart = conn.rdsSession().query(CartTable).filter_by(
-            user_id=user_id, product_id=product_id).first()
-        
-        # cart.product_count를 int로 변경
-        tmpCount = int(cart.product_count)
-        tmpCount += product_count
-        cart.product_count = str(tmpCount)
-        conn.rdsSession().commit()
-        conn.rdsSession().close()
-        return {"message": "장바구니에서 수정되었습니다."}
+        with sessionFix() as session:
+            update_cart = CartCommands().read(session, CartTable, id=isSession.user_id, product_id=cart.product_id)
+            print(update_cart)
+            update_cart.product_count = cart.product_count
+
+            CartCommands().update(session, CartTable, update_cart)
+            return {"message": "장바구니에서 수정되었습니다."}
     else:
         return {"message": "로그인이 필요합니다."}
