@@ -7,11 +7,13 @@ from src.Users.hash import *
 from src.Users.__crud__ import UserCommands
 
 from src.settings.dependency import app, sessionFix
+from itsdangerous import URLSafeTimedSerializer
 
 class sessionData(BaseModel):
     user_id: str
 
 cookie_params = CookieParameters()
+cookie_params.httponly = False
 backend = InMemoryBackend[UUID, sessionData]()
 redisSession = redisData(conn.redisConnect("session"))
 
@@ -22,8 +24,6 @@ cookie = SessionCookie(
     secret_key=secret_key,
     cookie_params=cookie_params
 )
-async def save_cookie(response: JSONResponse):
-    await response
 
 class verifySession(SessionVerifier[UUID, sessionData]):
     def __init__(
@@ -104,7 +104,6 @@ async def login(user_id: str, user_pw: str):
             if isUser:
                 result = sessionData(user_id=user_id)
                 await backend.create(sessionUID, result)
-
                     # redis에도 저장. expired 하루. 문자열로 result 저장
                 if redisSession.setData(str(sessionUID), user_id, 86400):
 
@@ -234,8 +233,11 @@ async def check(sessionUID: UUID = Depends(cookie)):
             try:
                 await backend.delete(sessionUID)
 
-                return {"message": "True"}
+                return {"message": False}
             except Exception as e:
                 return HTTPException(status_code=401, detail="session not found")
+        else:
+            # uid64 쿠키값 공개
+            return {"message": True}
     except Exception as e:
         return HTTPException(status_code=400, detail=str(e))
