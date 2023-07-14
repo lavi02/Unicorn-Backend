@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from sqlalchemy import Column, String, inspect, Text
+from typing import Union
 
 from .__conn__ import *
 
@@ -12,11 +13,12 @@ class UserTable(Base): # 유저 테이블
     user_phone = Column(String(50), nullable=False) # 전화번호
 
 class User(BaseModel): # 유저
-    user_name: str
+    user_name: Union[str, None] = None
     user_id: str
-    user_pw: str
-    user_email: str
-    user_phone: str
+    user_pw: Union[str, None] = None
+    user_email: Union[str, None] = None
+    user_phone: Union[str, None] = None
+    is_valid: Union[bool, None] = None
 
 
 # UserTable 테이블 생성

@@ -1,14 +1,16 @@
 from fastapi import FastAPI, BackgroundTasks
-from fastapi_sessions.frontends.implementations import SessionCookie, CookieParameters
 from fastapi_sessions.backends.implementations import InMemoryBackend
 from fastapi_sessions.session_verifier import SessionVerifier
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+
 from uuid import UUID, uuid4
 from starlette.middleware.cors import CORSMiddleware
 
 from src.database.__conn__ import Session
 from contextlib import contextmanager
+from jose import JWTError, jwt
 
-
+oauth2Schema = OAuth2PasswordBearer(tokenUrl="/api/v1/user/token")
 tags_metadata = [
     {
         "name": "user",

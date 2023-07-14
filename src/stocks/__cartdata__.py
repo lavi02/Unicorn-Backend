@@ -3,7 +3,6 @@ from fastapi.responses import JSONResponse
 from src.database.__conn__ import conn
 from src.database.__cart__ import Cart, CartTable
 from src.settings.dependency import *
-from src.settings.check_session import check_session
 
 from src.Users.__users__ import *
 from src.Users.hash import *
@@ -22,12 +21,11 @@ from src.settings.dependency import app, sessionFix
             401: { "description": "권한 없음" }
         }, tags=["stocks"]
     )
-async def addCart(cart: Cart, sessionUID: UUID = Depends(cookie)):
-    isSession = await check_session(sessionUID)
-    if isSession:
+async def addCart(cart: Cart, temp: Annotated[User, Depends(getCurrentUser)]):
+    try:
         with sessionFix() as session:
             new_cart = CartTable(
-                user_id=isSession.user_id,
+                user_id=temp.user_id,
                 product_id=cart.product_id,
                 product_price=cart.product_price,
                 product_count=cart.product_count
@@ -37,7 +35,7 @@ async def addCart(cart: Cart, sessionUID: UUID = Depends(cookie)):
             else:
                 return HTTPException(status_code=400, detail="fail")
             
-    else:
+    except Exception as e:
         return {"message": "로그인이 필요합니다."}
     
 
@@ -50,16 +48,15 @@ async def addCart(cart: Cart, sessionUID: UUID = Depends(cookie)):
             400: { "description": "실패" }
         }, tags=["stocks"]
     )
-async def cartList(sessionUID: UUID = Depends(cookie)):
-    isSession = await check_session(sessionUID)
-    if isSession:
+async def cartList(temp: Annotated[User, Depends(getCurrentUser)]):
+    try:
         try:
             with sessionFix() as session:
                 cart = CartCommands().read(session, CartTable)
                 return cart
         except:
             return HTTPException(status_code=400, detail="fail")
-    else:
+    except Exception as e:
         return {"message": "로그인이 필요합니다."}
     
 
@@ -74,14 +71,13 @@ async def cartList(sessionUID: UUID = Depends(cookie)):
             401: { "description": "로그인이 필요합니다." }
         }, tags=["stocks"]
     )
-async def cartList(sessionUID: UUID = Depends(cookie)):
-    isSession = await check_session(sessionUID)
-    if isSession:
+async def cartList(sessionUID: Annotated[User, Depends(getCurrentUser)]):
+    try:
         with sessionFix() as session:
-            cart = CartCommands().read(session, CartTable, id=isSession.user_id)
+            cart = CartCommands().read(session, CartTable, id=sessionUID.user_id)
             return cart
-    else:
-        return {"message": "로그인이 필요합니다."}
+    except:
+        return HTTPException(status_code=400, detail="fail")
 
 # 장바구니에서 해당 품목 삭제
 @app.delete(
@@ -96,16 +92,14 @@ async def cartList(sessionUID: UUID = Depends(cookie)):
     )
 async def deleteCart(
     product_id: str,
-    sessionUID: UUID = Depends(cookie),
+    temp: Annotated[User, Depends(getCurrentUser)],
 ):
-    isSession = await check_session(sessionUID)
-    if isSession:
+    try:
         with sessionFix() as session:
-            cart = CartCommands().delete(session, CartTable, user_id=isSession.user_id, product_id=product_id)
+            cart = CartCommands().delete(session, CartTable, user_id=temp.user_id, product_id=product_id)
             return {"message": "장바구니에서 삭제되었습니다."}
-    else:
-        return {"message": "로그인이 필요합니다."}
-    
+    except Exception as e:
+        return HTTPException(status_code=400, detail=e)    
 
 # 장바구니에서 상품 개수 수정
 @app.put(
@@ -120,16 +114,15 @@ async def deleteCart(
     )
 async def updateCart(
     cart: Cart,
-    sessionUID: UUID = Depends(cookie),
+    temp: Annotated[User, Depends(getCurrentUser)]
 ):
-    isSession = await check_session(sessionUID)
-    if isSession:
+    try:
         with sessionFix() as session:
-            update_cart = CartCommands().read(session, CartTable, id=isSession.user_id, product_id=cart.product_id)
+            update_cart = CartCommands().read(session, CartTable, id=temp.user_id, product_id=cart.product_id)
             print(update_cart)
             update_cart.product_count = cart.product_count
 
             CartCommands().update(session, CartTable, update_cart)
             return {"message": "장바구니에서 수정되었습니다."}
-    else:
-        return {"message": "로그인이 필요합니다."}
+    except Exception as e:
+        return HTTPException(status_code=400, detail=e)
