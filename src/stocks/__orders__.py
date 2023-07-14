@@ -3,7 +3,6 @@ from fastapi.responses import JSONResponse
 from src.database.__order__ import Order, OrderTable
 from src.stocks.__crud_order__ import OrderCommands
 from src.settings.dependency import *
-from src.settings.check_session import check_session
 
 from src.Users.__users__ import *
 from src.Users.hash import *
@@ -29,12 +28,11 @@ from src.settings.dependency import app, sessionFix
             401: { "description": "권한 없음" }
         }, tags=["stocks"]
     )
-async def addOrder(order: Order, sessionUID: UUID = Depends(cookie)):
-    isSession = await check_session(sessionUID)
-    if isSession:
+async def addOrder(order: Order, temp: Annotated[User, Depends(getCurrentUser)]):
+    try:
         with sessionFix() as session:
             new_order = OrderTable(
-                user_id=isSession.user_id,
+                user_id=temp.user_id,
                 store_code=order.store_code,
                 table_number=order.table_number,
                 product_id=order.product_id,
@@ -48,9 +46,8 @@ async def addOrder(order: Order, sessionUID: UUID = Depends(cookie)):
             else:
                 return HTTPException(status_code=400, detail="fail")
             
-    else:
+    except Exception as e:
         return {"message": "로그인이 필요합니다."}
-    
 
 # 장바구니 목록
 @app.get(
@@ -61,17 +58,13 @@ async def addOrder(order: Order, sessionUID: UUID = Depends(cookie)):
             400: { "description": "실패" }
         }, tags=["stocks"]
     )
-async def orderList(sessionUID: UUID = Depends(cookie), store_code: str = None, table_number: str = None, status: bool = None):
-    isSession = await check_session(sessionUID)
-    if isSession:
-        try:
-            with sessionFix() as session:
-                order = OrderCommands().readTableOrder(session, OrderTable, store_code=store_code, table_number=table_number, status=status)
-                return order
-        except:
-            return HTTPException(status_code=400, detail="fail")
-    else:
-        return {"message": "로그인이 필요합니다."}
+async def orderList(temp: Annotated[User, Depends(getCurrentUser)], store_code: str = None, table_number: str = None, status: bool = None):
+    try:
+        with sessionFix() as session:
+            order = OrderCommands().readTableOrder(session, OrderTable, store_code=store_code, table_number=table_number, status=status)
+            return order
+    except:
+        return HTTPException(status_code=400, detail="fail")
     
 
 # 특정 사용자의 장바구니 목록
@@ -85,13 +78,12 @@ async def orderList(sessionUID: UUID = Depends(cookie), store_code: str = None, 
             401: { "description": "로그인이 필요합니다." }
         }, tags=["stocks"]
     )
-async def cartList(sessionUID: UUID = Depends(cookie)):
-    isSession = await check_session(sessionUID)
-    if isSession:
+async def cartList(temp: Annotated[User, Depends(getCurrentUser)]):
+    try:
         with sessionFix() as session:
-            order = OrderCommands().read(session, Order, id=isSession.user_id)
+            order = OrderCommands().read(session, Order, id=temp.user_id)
             return order
-    else:
+    except Exception as e:
         return {"message": "로그인이 필요합니다."}
 
 # 장바구니에서 해당 품목 삭제
@@ -107,12 +99,11 @@ async def cartList(sessionUID: UUID = Depends(cookie)):
     )
 async def deleteCart(
     product_id: str,
-    sessionUID: UUID = Depends(cookie),
+    temp: Annotated[User, Depends(getCurrentUser)]
 ):
-    isSession = await check_session(sessionUID)
-    if isSession:
+    try:
         with sessionFix() as session:
-            OrderCommands().delete(session, OrderTable, user_id=isSession.user_id, product_id=product_id)
+            OrderCommands().delete(session, OrderTable, user_id=temp.user_id, product_id=product_id)
             return {"message": "장바구니에서 삭제되었습니다."}
-    else:
+    except Exception as e:
         return {"message": "로그인이 필요합니다."}
