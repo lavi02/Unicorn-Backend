@@ -22,10 +22,7 @@ async def users():
     with sessionFix() as session:
         user = UserCommands().read(session, UserTable)
         return user
-
-@app.post("/test")
-async def test(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-    return form_data.username
+    
 @app.post(
         "/api/v1/user/token", description="유저 토큰 조회",
         tags=["user"]
@@ -42,7 +39,7 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
                 access_token = hashData.create_user_token(
                     data={"sub": user.user_id}, expires_delta=access_token_expires
                 )
-                if redisSession.setData(str(access_token), form_data.username, 86400):
+                if redisSession.setData(form_data.username, str(access_token), 86400):
                     return {"access_token": access_token, "token_type": "bearer"}
 
                 else:
@@ -54,7 +51,13 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
 
 @app.get("/api/v1/user/login", description="유저 로그인", status_code=status.HTTP_200_OK, tags=["user"])
 async def login(id: str, pw: str):
-    return
+    form_data = OAuth2PasswordRequestForm(username=id, password=pw)
+    try:
+        response = await token(form_data)
+        return response
+    
+    except Exception as e:
+        return {"message": str(e)}
 
 
 # json 형식으로 데이터를 받아올 때는 request body에 데이터를 넣어서 보내야 한다.
@@ -140,7 +143,7 @@ async def delete(user_id: str):
 async def logout(sessionUID: Annotated[User, Depends(getCurrentUser)]):
     try:
         # redis에서도 삭제
-        redisSession.deleteData(str(sessionUID))
+        redisSession.deleteData(sessionUID.username)
 
         return {"message": "success"}
     except HTTPException as e:
@@ -161,7 +164,7 @@ async def logout(sessionUID: Annotated[User, Depends(getCurrentUser)]):
 async def check(sessionUID: Annotated[User, Depends(getCurrentUser)]):
     try:
         # redis에 없으면 세션에서도 삭제
-        if not redisSession.getData(str(sessionUID)):
+        if not redisSession.getData(sessionUID.username):
             try:
                 return {"message": False}
             except Exception as e:

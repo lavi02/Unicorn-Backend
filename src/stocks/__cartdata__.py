@@ -119,7 +119,6 @@ async def updateCart(
     try:
         with sessionFix() as session:
             update_cart = CartCommands().read(session, CartTable, id=temp.user_id, product_id=cart.product_id)
-            print(update_cart)
             update_cart.product_count = cart.product_count
 
             CartCommands().update(session, CartTable, update_cart)
