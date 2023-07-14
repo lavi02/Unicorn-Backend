@@ -1,6 +1,6 @@
 from fastapi.responses import JSONResponse
 
-from src.database.__cart__ import Order, OrderTable
+from src.database.__order__ import Order, OrderTable
 from src.stocks.__crud_order__ import OrderCommands
 from src.settings.dependency import *
 from src.settings.check_session import check_session
@@ -66,8 +66,8 @@ async def orderList(sessionUID: UUID = Depends(cookie), store_code: str = None, 
     if isSession:
         try:
             with sessionFix() as session:
-                cart = OrderCommands().readTableOrder(session, OrderTable, store_code=store_code, table_number=table_number, status=status)
-                return cart
+                order = OrderCommands().readTableOrder(session, OrderTable, store_code=store_code, table_number=table_number, status=status)
+                return order
         except:
             return HTTPException(status_code=400, detail="fail")
     else:
@@ -89,8 +89,8 @@ async def cartList(sessionUID: UUID = Depends(cookie)):
     isSession = await check_session(sessionUID)
     if isSession:
         with sessionFix() as session:
-            cart = OrderCommands().read(session, Order, id=isSession.user_id)
-            return cart
+            order = OrderCommands().read(session, Order, id=isSession.user_id)
+            return order
     else:
         return {"message": "로그인이 필요합니다."}
 

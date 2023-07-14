@@ -31,4 +31,4 @@ class Order(BaseModel):
 
 inspector = inspect(conn.engineData())
 if not inspector.has_table('order'):
-    OrderTable.__table__.create(bind=conn.engineData)
+    OrderTable.__table__.create(bind=conn.engineData())

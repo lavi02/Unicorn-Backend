@@ -1,5 +1,5 @@
 from src.database.__conn__ import Session
-from src.database.__order__ import Cart, CartTable
+from src.database.__order__ import Order, OrderTable
 from src.settings.dependency import *
 
 class OrderCommands:
