@@ -19,13 +19,13 @@ from src.settings.dependency import app, sessionFix
             200: { "description": "성공" },
             400: { "description": "실패" },
             401: { "description": "권한 없음" }
-        }, tags=["stocks"]
+        }, tags=["cart"]
     )
 async def addCart(cart: Cart, temp: Annotated[User, Depends(getCurrentUser)]):
     try:
         with sessionFix() as session:
             new_cart = CartTable(
-                user_id=temp.user_id,
+                user_id=temp.username,
                 product_id=cart.product_id,
                 product_price=cart.product_price,
                 product_count=cart.product_count
@@ -36,7 +36,7 @@ async def addCart(cart: Cart, temp: Annotated[User, Depends(getCurrentUser)]):
                 return HTTPException(status_code=400, detail="fail")
             
     except Exception as e:
-        return {"message": "로그인이 필요합니다."}
+        return {"message": e}
     
 
 # 장바구니 목록
@@ -46,7 +46,7 @@ async def addCart(cart: Cart, temp: Annotated[User, Depends(getCurrentUser)]):
         responses={
             200: { "description": "성공" },
             400: { "description": "실패" }
-        }, tags=["stocks"]
+        }, tags=["cart"]
     )
 async def cartList(temp: Annotated[User, Depends(getCurrentUser)]):
     try:
@@ -69,12 +69,12 @@ async def cartList(temp: Annotated[User, Depends(getCurrentUser)]):
             200: { "description": "성공" },
             400: { "description": "실패" },
             401: { "description": "로그인이 필요합니다." }
-        }, tags=["stocks"]
+        }, tags=["cart"]
     )
 async def cartList(sessionUID: Annotated[User, Depends(getCurrentUser)]):
     try:
         with sessionFix() as session:
-            cart = CartCommands().read(session, CartTable, id=sessionUID.user_id)
+            cart = CartCommands().read(session, CartTable, id=sessionUID.username)
             return cart
     except:
         return HTTPException(status_code=400, detail="fail")
@@ -88,7 +88,7 @@ async def cartList(sessionUID: Annotated[User, Depends(getCurrentUser)]):
             200: { "description": "성공" },
             400: { "description": "실패" },
             401: { "description": "로그인이 필요합니다." }
-        }, tags=["stocks"]
+        }, tags=["cart"]
     )
 async def deleteCart(
     product_id: str,
@@ -96,7 +96,7 @@ async def deleteCart(
 ):
     try:
         with sessionFix() as session:
-            cart = CartCommands().delete(session, CartTable, user_id=temp.user_id, product_id=product_id)
+            cart = CartCommands().delete(session, CartTable, user_id=temp.username, product_id=product_id)
             return {"message": "장바구니에서 삭제되었습니다."}
     except Exception as e:
         return HTTPException(status_code=400, detail=e)    
@@ -110,7 +110,7 @@ async def deleteCart(
             200: { "description": "성공" },
             400: { "description": "실패" },
             401: { "description": "로그인이 필요합니다." }
-        }, tags=["stocks"]
+        }, tags=["cart"]
     )
 async def updateCart(
     cart: Cart,
@@ -118,10 +118,11 @@ async def updateCart(
 ):
     try:
         with sessionFix() as session:
-            update_cart = CartCommands().read(session, CartTable, id=temp.user_id, product_id=cart.product_id)
+            update_cart = CartCommands().read(session, CartTable, id=temp.username, product_id=cart.product_id)
+            update_cart.product_price = cart.product_price
             update_cart.product_count = cart.product_count
 
-            CartCommands().update(session, CartTable, update_cart)
+            print(CartCommands().update(session, CartTable, update_cart))
             return {"message": "장바구니에서 수정되었습니다."}
     except Exception as e:
         return HTTPException(status_code=400, detail=e)
