@@ -15,7 +15,7 @@ class OrderCommands:
         else:
             return tmpSession.query(where).filter_by(store_code=store_code).filter_by(table_number=table_number).filter_by(status=status).all()
         
-    def read(self, tmpSession, where, product_status,
+    def read(self, tmpSession, where, product_status=None,
             id=None, product_id=None, store_cdoe=None):
         if id == None: # 전체 사용자
             if product_id == None: # 전체 상품

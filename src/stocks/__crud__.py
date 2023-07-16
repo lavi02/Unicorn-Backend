@@ -22,9 +22,7 @@ class CartCommands:
     def update(self, tmpSession, where, target):
         # change DB Data
         try:
-            tmpSession.query(where).filter_by(user_id=target.user_id).update({
-                where.user_id: target.user_id,
-                where.product_id: target.product_id,
+            tmpSession.query(where).filter_by(user_id=target.user_id).filter_by(product_id=target.product_id).update({
                 where.product_price: target.product_price,
                 where.product_count: target.product_count
             })
