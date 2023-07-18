@@ -1,1 +1,5 @@
 # created by virtualenv automatically
+bin/
+include/
+/lib/
+__pycache__/

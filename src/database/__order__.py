@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Union
-from sqlalchemy import Column, String, inspect, JSON, Boolean
+from sqlalchemy import Column, String, inspect, JSON, Boolean, Integer
 
 from .__conn__ import *
 
@@ -11,8 +11,8 @@ class OrderTable(Base):
     store_code = Column(String(50), nullable=False)
     table_number = Column(String(50), nullable=False)
     product_id = Column(String(50), primary_key=True, nullable=False)
-    product_price = Column(String(50), nullable=False)
-    product_count = Column(String(50), nullable=False)
+    product_price = Column(Integer, nullable=False)
+    product_count = Column(Integer, nullable=False)
     product_option = Column(JSON, nullable=True)
     product_status = Column(Boolean, nullable=False, default=False)
 
@@ -20,8 +20,8 @@ class Order(BaseModel):
     store_code: str
     table_number: str
     product_id: str
-    product_price: str
-    product_count: str
+    product_price: int
+    product_count: int
     product_option: Union[dict, None] = None
     product_status: bool
 
