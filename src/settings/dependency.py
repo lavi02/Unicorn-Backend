@@ -15,6 +15,22 @@ tags_metadata = [
     {
         "name": "user",
         "description": "Operations with users",
+    },
+    {
+        "name": "product",
+        "description": "Operations with products",
+    },
+    {
+        "name": "order",
+        "description": "Operations with orders",
+    },
+    {
+        "name": "cart",
+        "description": "Operations with cart",
+    },
+    {
+        "name": "store",
+        "description": "Operations with store",
     }
 ]
 

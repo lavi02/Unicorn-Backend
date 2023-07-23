@@ -8,7 +8,7 @@ class StocksTable(Base):
     __tablename__ = 'stocks'
     store_code = Column(String(50),ForeignKey("store.store_code"), nullable=False)
     stock_name = Column(String(50), nullable=False)
-    stock_id = Column(String(50), nullable=False, primary_key=True,)
+    stock_id = Column(String(50), nullable=False, primary_key=True)
     stock_price = Column(String(50), nullable=False)
     stock_description = Column(Text, nullable=True)
     stock_option = Column(JSON, nullable=True)
@@ -17,7 +17,7 @@ class StocksTable(Base):
 class Stocks(BaseModel):
     store_code: str
     stock_name: str
-    stock_id: str
+    stock_id: Union[str, None] = None
     stock_price: str
     stock_description: Union[str, None] = None
     stock_option: Union[dict, None] = None

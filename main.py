@@ -10,6 +10,8 @@ from src.database.__stocks__ import *
 from src.Users.__users__ import *
 from src.stocks.__cartdata__ import *
 from src.stocks.__orders__ import *
+from src.stocks.store.__crud__ import *
+from src.stocks.store.__store__ import *
 from src.settings.dependency import app
 
 @app.get("/")
