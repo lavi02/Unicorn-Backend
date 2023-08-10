@@ -32,7 +32,7 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
         with sessionFix() as session:
             user = UserCommands().read(session, UserTable, id=form_data.username)
             if user is None:
-                return {"message": "유저가 존재하지 않습니다."}
+                return HTTPException(status_code=400, detail="아이디가 존재하지 않습니다.")
             isUser = hashData.verify_password(form_data.password, user.user_pw)
             if isUser:
                 access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -43,11 +43,11 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
                     return {"access_token": access_token, "token_type": "bearer"}
 
                 else:
-                    return {"message": "redis에 데이터를 저장하는데 실패했습니다."}
+                    return HTTPException(status_code=400, detail="redis에 토큰을 저장하는데 실패했습니다")
             else:
-                return {"message": "비밀번호가 일치하지 않습니다."}
+                return HTTPException(status_code=400, detail="비밀번호가 일치하지 않습니다.")
     except Exception:
-        return {"message": "로그인에 실패했습니다."}
+        return HTTPException(status_code=400, detail="로그인에 실패했습니다.")
 
 @app.get("/api/v1/user/login", description="유저 로그인", status_code=status.HTTP_200_OK, tags=["user"])
 async def login(id: str, pw: str):
