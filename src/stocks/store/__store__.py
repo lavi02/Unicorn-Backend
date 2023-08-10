@@ -39,12 +39,12 @@ async def addStocks(stocks: Stocks, temp: Annotated[User, Depends(getCurrentUser
                 stock_option=stocks.stock_option,
             )
             if StocksCommands().create(session, new_stock) == None:
-                return {"message": "success"}
+                return JSONResponse(status_code=200, content={"message": "success", "stock_id": stock_id})
             else:
-                return HTTPException(status_code=400, detail="fail")
+                return JSONResponse(status_code=400, content={"message": "fail"})
             
     except Exception:
-        return {"message": "로그인이 필요합니다."}
+        return JSONResponse(status_code=401, content={"message": "로그인이 필요합니다."})
 
 # 장바구니 목록
 @app.get(
@@ -61,9 +61,9 @@ async def stocksList(store_code: str,
     try:
         with sessionFix() as session:
             stocks = StocksCommands().readStoreStocks(session, StocksTable, store_code=store_code, stock_id=stock_id)
-            return stocks
+            return JSONResponse(status_code=200, content={"message": "success", "stocks": stocks})
     except Exception:
-        return {"message": "로그인이 필요합니다."}
+        return JSONResponse(status_code=401, content={"message": "로그인이 필요합니다."})
     
 # 상품내용 변경
 @app.put(
@@ -87,12 +87,12 @@ async def updateStocks(stocks: Stocks, temp: Annotated[User, Depends(getCurrentU
                 stock_option=stocks.stock_option,
             )
             if StocksCommands().updateStoreStocks(session, StocksTable, target) == None:
-                return {"message": "success"}
+                return JSONResponse(status_code=200, content={"message": "success"})
             else:
-                return HTTPException(status_code=400, detail="fail")
+                return JSONResponse(status_code=400, content={"message": "fail"})
             
     except Exception as e:
-        return {"message": str(e)}
+        return JSONResponse(status_code=401, content={"message": "로그인이 필요합니다."})
     
 
 # 상품 삭제
@@ -109,9 +109,9 @@ async def deleteStocks(store_code: str, stock_id, temp: Annotated[User, Depends(
     try:
         with sessionFix() as session:
             StocksCommands().deleteStocks(session, StocksTable, store_code=store_code, stock_id=stock_id)
-            return {"message": "success"}
+            return JSONResponse(status_code=200, content={"message": "success"})
     except Exception:
-        return {"message": "로그인이 필요합니다."}
+        return JSONResponse(status_code=401, content={"message": "로그인이 필요합니다."})
 
 
 # store_code = generate_random_string(24)
@@ -135,9 +135,9 @@ async def addStore(store: Store, temp: Annotated[User, Depends(getCurrentUser)])
                 store_status=store.store_status
             )
             if StocksCommands().create(session, new_store) == None:
-                return {"message": "success"}
+                return JSONResponse(status_code=200, content={"message": "success", "store_code": store_code})
             else:
-                return HTTPException(status_code=400, detail="fail")
+                return JSONResponse(status_code=400, content={"message": "fail"})
             
     except Exception as e:
         return {"message": str(e)}
@@ -153,10 +153,9 @@ async def stores(temp: Annotated[User, Depends(getCurrentUser)], store_code: Uni
     try:
         with sessionFix() as session:
             stores = StocksCommands().readStore(session, StoreTable, store_code=store_code, store_status=store_status)
-            return stores
+            return JSONResponse(status_code=200, content={"message": "success", "stores": stores})
     except Exception as e:
-        print(e)
-        return {"message": str(e)}
+        return JSONResponse(status_code=401, content={"message": str(e)})
     
 @app.get(
         "/api/v1/order/store/users/list", description="상점 유저 목록",
@@ -170,7 +169,7 @@ async def stores(temp: Annotated[User, Depends(getCurrentUser)], store_code: str
     try:
         with sessionFix() as session:
             storeUsers = StocksCommands().readStoreUsers(session, StoreTable, store_code=store_code, user_id=user_id)
-            return storeUsers
+            return JSONResponse(status_code=200, content={"message": "success", "storeUsers": storeUsers})
     except Exception as e:
         print(e)
         return {"message": str(e)}

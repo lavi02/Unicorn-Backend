@@ -122,7 +122,8 @@ async def updateCart(
             update_cart.product_price = cart.product_price
             update_cart.product_count = cart.product_count
 
-            print(CartCommands().update(session, CartTable, update_cart))
-            return {"message": "장바구니에서 수정되었습니다."}
+            CartCommands().update(session, update_cart)
+
+            return JSONResponse(status_code=200, content={"message": "success"})
     except Exception as e:
-        return HTTPException(status_code=400, detail=e)
+        return JSONResponse(status_code=400, content={"message": e})

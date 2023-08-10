@@ -32,7 +32,7 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
         with sessionFix() as session:
             user = UserCommands().read(session, UserTable, id=form_data.username)
             if user is None:
-                return HTTPException(status_code=400, detail="아이디가 존재하지 않습니다.")
+                return JSONResponse(status_code=400, content={"message": "아이디가 존재하지 않습니다."})
             isUser = hashData.verify_password(form_data.password, user.user_pw)
             if isUser:
                 access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -40,12 +40,12 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
                     data={"sub": user.user_id}, expires_delta=access_token_expires
                 )
                 if redisSession.setData(form_data.username, str(access_token), 86400):
-                    return {"access_token": access_token, "token_type": "bearer"}
+                    return JSONResponse(status_code=200, content={"access_token": access_token, "token_type": "bearer"})
 
                 else:
-                    return HTTPException(status_code=400, detail="redis에 토큰을 저장하는데 실패했습니다")
+                    return JSONResponse(status_code=400, content={"message": "redis에 저장에 실패했습니다."})
             else:
-                return HTTPException(status_code=400, detail="비밀번호가 일치하지 않습니다.")
+                return JSONResponse(status_code=400, content={"message": "비밀번호가 일치하지 않습니다."})
     except Exception:
         return HTTPException(status_code=400, detail="로그인에 실패했습니다.")
 
@@ -84,9 +84,9 @@ async def create(user: User):
                 user_phone=user.user_phone
             )
             result = UserCommands().create(session, new_user)
-            return {"message": result}
+            return JSONResponse(status_code=200, content={"message": result})
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise JSONResponse(status_code=400, content={"message": str(e)})
     
 @app.put(
         "/api/v1/user/update", description="유저 정보 수정",
@@ -107,7 +107,7 @@ async def update(user: User):
         update_user.user_phone = user.user_phone
 
         result = UserCommands().update(session, UserTable, update_user)
-        return result
+        return JSONResponse(status_code=200, content={"message": result})
     
 @app.delete(
         "/api/v1/user/delete", description="유저 삭제",
@@ -122,13 +122,13 @@ async def delete(user_id: str):
     try:
         with sessionFix() as session:
             result = UserCommands().delete(session, UserTable, user_id)
-            return {"message": result}
+            return JSONResponse(status_code=200, content={"message": result})
     # 세션 없을 때
     except HTTPException as e:
         if HTTPException.status_code == 401:
-            return {"message": "unauthorized"}
+            return JSONResponse(status_code=401, content={"message": "unauthorized"})
         else:
-            HTTPException(status_code=400, detail=str(e))
+            return JSONResponse(status_code=400, content={"message": str(e)})
     
 
 @app.get(
@@ -148,9 +148,9 @@ async def logout(sessionUID: Annotated[User, Depends(getCurrentUser)]):
         return {"message": "success"}
     except HTTPException as e:
         if HTTPException.status_code == 401:
-            return {"message": "unauthorized"}
+            return JSONResponse(status_code=401, content={"message": "unauthorized"})
         else:
-            HTTPException(status_code=400, detail=str(e))
+            return JSONResponse(status_code=400, content={"message": str(e)})
 
 # check session
 @app.get(
@@ -166,11 +166,11 @@ async def check(sessionUID: Annotated[User, Depends(getCurrentUser)]):
         # redis에 없으면 세션에서도 삭제
         if not redisSession.getData(sessionUID.username):
             try:
-                return {"message": False}
+                return JSONResponse(status_code=401, content={"message": "session not found"})
             except Exception as e:
-                return HTTPException(status_code=401, detail="session not found")
+                return JSONResponse(status_code=400, content={"message": str(e)})
         else:
             # uid64 쿠키값 공개
-            return {"message": True}
+            return JSONResponse(status_code=200, content={"message": True})
     except Exception as e:
-        return HTTPException(status_code=400, detail=str(e))
+        return JSONResponse(status_code=400, content={"message": str(e)})
