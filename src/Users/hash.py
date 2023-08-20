@@ -16,7 +16,7 @@ from src.settings.dependency import *
 secret_key = urandom(32)
 hashCode = "Hello_neighbor"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1440
+ACCESS_TOKEN_EXPIRE_MINUTES = 10
 
 class TokenData(BaseModel):
     access_token: str
@@ -53,7 +53,7 @@ class hashData():
         if expires_delta:
             expire = datetime.now(timezone(timedelta(hours=9))) + expires_delta
         else:
-            expire = datetime.now(timezone(timedelta(hours=9))) + timedelta(days=7)
+            expire = datetime.now(timezone(timedelta(hours=9))) + timedelta(days=1)
         to_encode.update({"exp": expire})
         encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=ALGORITHM)
         return encoded_jwt

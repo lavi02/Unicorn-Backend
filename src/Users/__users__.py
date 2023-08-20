@@ -20,8 +20,16 @@ redisSession = redisData(conn.redisConnect("session"))
     )
 async def users():
     with sessionFix() as session:
-        user = UserCommands().read(session, UserTable)
-        return JSONResponse(status_code=200, content={"message": "success", "data": user})
+        userData = UserCommands().read(session, UserTable)
+        userList = []
+        for user in userData:
+            userList.append({
+                "user_name": user.user_name,
+                "user_id": user.user_id,
+                "user_email": user.user_email,
+                "user_phone": user.user_phone
+            })
+        return JSONResponse(status_code=200, content={"message": "success", "data": userList})
     
 @app.post(
         "/api/v1/user/refresh", description="유저 토큰 갱신",
@@ -35,22 +43,31 @@ async def refresh_access_token(refresh_token: str):
     try:
         payload = jwt.decode(refresh_token, secret_key, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
+
         if user_id is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+            raise JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not decode token")
+        raise JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
 
     with sessionFix() as session:
         user = UserCommands().read(session, UserTable, id=user_id)
         if user is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+            raise JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
+        if redisSession.getData(user_id+"_refresh_token") != refresh_token:
+            raise JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
 
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = hashData.create_user_token(
             data={"sub": user_id},
             expires_delta=access_token_expires
         )
-        return {"access_token": access_token, "token_type": "bearer"}
+
+        if redisSession.getData(user_id):
+            redisSession.deleteData(user_id)
+            redisSession.setData(user_id, str(access_token), 600)
+        else:
+            redisSession.setData(user_id, str(access_token), 600)
+        return JSONResponse(status_code=200, content={"access_token": access_token})
 
 
 
@@ -64,29 +81,35 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
         with sessionFix() as session:
             user = UserCommands().read(session, UserTable, id=form_data.username)
             if user is None:
-                return JSONResponse(status_code=400, content={"message": "아이디가 존재하지 않습니다."})
+                return { "message": "유저가 존재하지 않습니다." }
             isUser = hashData.verify_password(form_data.password, user.user_pw)
             if isUser:
                 access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
                 access_token = hashData.create_user_token(
                     data={"sub": user.user_id}, expires_delta=access_token_expires
                 )
-                refreshToken = hashData.create_refresh_token(data={"sub": user.user_id})
-                if redisSession.setData(form_data.username, str(access_token), 86400):
-                    return {"access_token": access_token, "refresh_token": refreshToken}
+                refreshToken = hashData.create_refresh_token(user_id=user.user_id)
+                if redisSession.setData(form_data.username, str(access_token), 600):
+                    if redisSession.setData(form_data.username+"_refresh_token", str(refreshToken), 86400):
+                        return {"access_token": access_token, "refresh_token": refreshToken}
+                    else:
+                        redisSession.deleteData(form_data.username)
+                        redisSession.deleteData(form_data.username+"_refresh_token")
+                        return {"message": "redis error"}
 
                 else:
                     return {"message": "redis error"}
             else:
                 return {"message": "비밀번호가 일치하지 않습니다."}
-    except Exception:
-        return {"message": "error"}
+    except Exception as e:
+        return {"message": str(e)}
 
 @app.get("/api/v1/user/login", description="유저 로그인", tags=["user"])
 async def login(id: str, pw: str):
     form_data = OAuth2PasswordRequestForm(username=id, password=pw)
     try:
         response = await token(form_data)
+        print(response)
         return JSONResponse(status_code=200, content={"message": "success", "data": response})
     
     except Exception as e:
