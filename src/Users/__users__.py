@@ -88,6 +88,7 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
                 access_token = hashData.create_user_token(
                     data={"sub": user.user_id}, expires_delta=access_token_expires
                 )
+
                 refreshToken = hashData.create_refresh_token(user_id=user.user_id)
                 if redisSession.setData(form_data.username, str(access_token), 600):
                     if redisSession.setData(form_data.username+"_refresh_token", str(refreshToken), 86400):
