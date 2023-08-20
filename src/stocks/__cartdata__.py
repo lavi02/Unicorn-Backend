@@ -49,16 +49,24 @@ async def addCart(cart: Cart, temp: Annotated[User, Depends(getCurrentUser)]):
             400: { "description": "실패" }
         }, tags=["cart"]
     )
-async def cartLisAll(temp: Annotated[User, Depends(getCurrentUser)]):
+async def cartLisAll(_: Annotated[User, Depends(getCurrentUser)]):
     try:
-        try:
-            with sessionFix() as session:
-                cart = CartCommands().read(session, CartTable)
-                return JSONResponse(status_code=200, content={"message": "success", "data": cart})
-        except:
-            return JSONResponse(status_code=400, content={"message": "fail"})
-    except Exception:
-        return JSONResponse(status_code=400, content={"message": "fail"})
+        with sessionFix() as session:
+            cart = CartCommands().read(session, CartTable)
+            cartData = []
+            for i in cart:
+                cartData.append({
+                    "user_id": i.user_id,
+                    "table_number": i.table_number,
+                    "product_id": i.product_id,
+                    "product_price": i.product_price,
+                    "product_count": i.product_count,
+                    "product_option": i.product_option
+                })
+
+            return JSONResponse(status_code=200, content={"message": "success", "data": cartData})
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"message": str(e)})
     
 
 # 특정 사용자의 장바구니 목록
@@ -76,7 +84,16 @@ async def cartList(sessionUID: Annotated[User, Depends(getCurrentUser)]):
     try:
         with sessionFix() as session:
             cart = CartCommands().read(session, CartTable, id=sessionUID.username)
-            return JSONResponse(status_code=200, content={"message": "success", "data": cart})
+            cartList = []
+            for i in cart:
+                cartList.append({
+                    "table_number": i.table_number,
+                    "product_id": i.product_id,
+                    "product_price": i.product_price,
+                    "product_count": i.product_count,
+                    "product_option": i.product_option
+                })
+            return JSONResponse(status_code=200, content={"message": "success", "data": cartList})
     except:
         return JSONResponse(status_code=400, content={"message": "fail"})
 

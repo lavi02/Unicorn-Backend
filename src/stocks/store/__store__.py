@@ -57,11 +57,21 @@ async def addStocks(stocks: Stocks, temp: Annotated[User, Depends(getCurrentUser
         }, tags=["product"]
     )
 async def stocksList(store_code: str, 
-                    temp: Annotated[User, Depends(getCurrentUser)], stock_id: Union[str, None] = None):
+                    _: Annotated[User, Depends(getCurrentUser)], stock_id: Union[str, None] = None):
     try:
         with sessionFix() as session:
             stocks = StocksCommands().readStoreStocks(session, StocksTable, store_code=store_code, stock_id=stock_id)
-            return JSONResponse(status_code=200, content={"message": "success", "stocks": stocks})
+            stocksList = []
+            for i in stocks:
+                stocksList.append({
+                    "store_code": i.store_code,
+                    "stock_name": i.stock_name,
+                    "stock_id": i.stock_id,
+                    "stock_price": i.stock_price,
+                    "stock_description": i.stock_description,
+                    "stock_option": i.stock_option
+                })
+            return JSONResponse(status_code=200, content={"message": "success", "stocks": stocksList})
     except Exception:
         return JSONResponse(status_code=401, content={"message": "로그인이 필요합니다."})
     
@@ -149,11 +159,18 @@ async def addStore(store: Store, temp: Annotated[User, Depends(getCurrentUser)])
             400: { "description": "실패" }
         }, tags=["store"]
     )
-async def stores(temp: Annotated[User, Depends(getCurrentUser)], store_code: Union[str, None] = None, store_status: Union[bool, None] = None):
+async def stores(_: Annotated[User, Depends(getCurrentUser)], store_code: Union[str, None] = None, store_status: Union[bool, None] = None):
     try:
         with sessionFix() as session:
-            stores = StocksCommands().readStore(session, StoreTable, store_code=store_code, store_status=store_status)
-            return JSONResponse(status_code=200, content={"message": "success", "stores": stores})
+            storeData = StocksCommands().readStore(session, StoreTable, store_code=store_code, store_status=store_status)
+            storeDataList = []
+            for i in storeData:
+                storeDataList.append({
+                    "store_code": i.store_code,
+                    "store_name": i.store_name,
+                    "store_status": i.store_status
+                })
+            return JSONResponse(status_code=200, content={"message": "success", "stores": storeDataList})
     except Exception as e:
         return JSONResponse(status_code=401, content={"message": str(e)})
     
@@ -165,13 +182,19 @@ async def stores(temp: Annotated[User, Depends(getCurrentUser)], store_code: Uni
             400: { "description": "실패" }
         }, tags=["store"]
     )
-async def stores(temp: Annotated[User, Depends(getCurrentUser)], store_code: str, user_id: Union[str, None] = None):
+async def storeUsers(temp: Annotated[User, Depends(getCurrentUser)], store_code: str, user_id: Union[str, None] = None):
     try:
         with sessionFix() as session:
-            storeUsers = StocksCommands().readStoreUsers(session, StoreTable, store_code=store_code, user_id=user_id)
-            return JSONResponse(status_code=200, content={"message": "success", "storeUsers": storeUsers})
+            storeUsersData = StocksCommands().readStoreUsers(session, StoreTable, store_code=store_code, user_id=user_id)
+            storeUserDataList = []
+            for i in storeUsersData:
+                storeUserDataList.append({
+                    "store_code": i.store_code,
+                    "user_id": i.user_id,
+                    "user_type": i.user_type
+                })
+            return JSONResponse(status_code=200, content={"message": "success", "storeUsers": storeUserDataList})
     except Exception as e:
-        print(e)
         return {"message": str(e)}
 
 # 상점 정보 변경

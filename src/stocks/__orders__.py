@@ -50,7 +50,7 @@ async def addOrder(order: Order, temp: Annotated[User, Depends(getCurrentUser)])
 
 # 장바구니 목록
 @app.get(
-        "/api/v1/order/list", description="특정 사용자의 주문 목록 조회",
+        "/api/v1/order/list/all", description="전체 사용자의 주문 목록 조회",
         status_code=status.HTTP_200_OK, response_class=JSONResponse,
         responses={
             200: { "description": "성공" },
@@ -58,11 +58,23 @@ async def addOrder(order: Order, temp: Annotated[User, Depends(getCurrentUser)])
             401: { "description": "로그인이 필요합니다." }
         }, tags=["order"]
     )
-async def orderList(temp: Annotated[User, Depends(getCurrentUser)], store_code: str = None, table_number: str = None, status: bool = None):
+async def orderListAll(_: Annotated[User, Depends(getCurrentUser)], store_code: str = None, table_number: str = None, status: bool = None):
     try:
         with sessionFix() as session:
             order = OrderCommands().readTableOrder(session, OrderTable, store_code=store_code, table_number=table_number, status=status)
-            return JSONResponse(status_code=200, content={"message": "success", "data": order})
+            orderList = []
+            for i in order:
+                orderList.append({
+                    "user_id": i.user_id,
+                    "store_code": i.store_code,
+                    "table_number": i.table_number,
+                    "product_id": i.product_id,
+                    "product_price": i.product_price,
+                    "product_count": i.product_count,
+                    "product_option": i.product_option,
+                    "product_status": i.product_status
+                })
+            return JSONResponse(status_code=200, content={"message": "success", "data": orderList})
     except:
         return JSONResponse(status_code=400, content={"message": "fail"})
     
@@ -71,19 +83,31 @@ async def orderList(temp: Annotated[User, Depends(getCurrentUser)], store_code: 
 # 세션 활용
 
 @app.get(
-        "/api/v1/order/list/all", description="장바구니 전체 사용자 목록",
+        "/api/v1/order/list", description="장바구니 특정 사용자 목록",
         status_code=status.HTTP_200_OK, response_class=JSONResponse,
         responses={
             200: { "description": "성공" },
             400: { "description": "실패" }
         }, tags=["order"]
     )
-async def orderListAll(temp: Annotated[User, Depends(getCurrentUser)]):
+async def orderList(temp: Annotated[User, Depends(getCurrentUser)]):
     try:
         with sessionFix() as session:
             order = OrderCommands().read(session, OrderTable, id=temp.username)
-            return JSONResponse(status_code=200, content={"message": "success", "data": order})
-    except Exception as e:
+            orderList = []
+            for i in order:
+                orderList.append({
+                    "user_id": i.user_id,
+                    "store_code": i.store_code,
+                    "table_number": i.table_number,
+                    "product_id": i.product_id,
+                    "product_price": i.product_price,
+                    "product_count": i.product_count,
+                    "product_option": i.product_option,
+                    "product_status": i.product_status
+                })
+            return JSONResponse(status_code=200, content={"message": "success", "data": orderList})
+    except Exception:
         return JSONResponse(status_code=400, content={"message": "fail"})
 
 # 장바구니에서 해당 품목 삭제
