@@ -21,7 +21,39 @@ redisSession = redisData(conn.redisConnect("session"))
 async def users():
     with sessionFix() as session:
         user = UserCommands().read(session, UserTable)
-        return user
+        return JSONResponse(status_code=200, content={"message": "success", "data": user})
+    
+@app.post(
+        "/api/v1/user/refresh", description="유저 토큰 갱신",
+        status_code=status.HTTP_200_OK, response_class=JSONResponse,
+        responses={
+            200: { "description": "성공" },
+            400: { "description": "실패" }
+        }, tags=["user"]
+)
+async def refresh_access_token(refresh_token: str):
+    try:
+        payload = jwt.decode(refresh_token, secret_key, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not decode token")
+
+    with sessionFix() as session:
+        user = UserCommands().read(session, UserTable, id=user_id)
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = hashData.create_user_token(
+            data={"sub": user_id},
+            expires_delta=access_token_expires
+        )
+        return {"access_token": access_token, "token_type": "bearer"}
+
+
+
     
 @app.post(
         "/api/v1/user/token", description="유저 토큰 조회",
@@ -39,32 +71,32 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
                 access_token = hashData.create_user_token(
                     data={"sub": user.user_id}, expires_delta=access_token_expires
                 )
+                refreshToken = hashData.create_refresh_token(data={"sub": user.user_id})
                 if redisSession.setData(form_data.username, str(access_token), 86400):
-                    return JSONResponse(status_code=200, content={"access_token": access_token, "token_type": "bearer"})
+                    return JSONResponse(status_code=200, content={"access_token": access_token, "refresh_token": refreshToken})
 
                 else:
                     return JSONResponse(status_code=400, content={"message": "redis에 저장에 실패했습니다."})
             else:
                 return JSONResponse(status_code=400, content={"message": "비밀번호가 일치하지 않습니다."})
     except Exception:
-        return HTTPException(status_code=400, detail="로그인에 실패했습니다.")
+        return JSONResponse(status_code=400, content={"message": "로그인에 실패했습니다."})
 
-@app.get("/api/v1/user/login", description="유저 로그인", status_code=status.HTTP_200_OK, tags=["user"])
+@app.get("/api/v1/user/login", description="유저 로그인", tags=["user"])
 async def login(id: str, pw: str):
     form_data = OAuth2PasswordRequestForm(username=id, password=pw)
     try:
         response = await token(form_data)
-        return response
+        return JSONResponse(status_code=200, content={"message": "success", "data": response})
     
     except Exception as e:
-        return {"message": str(e)}
+        return JSONResponse(status_code=400, content={"message": str(e)})
 
 
 # json 형식으로 데이터를 받아올 때는 request body에 데이터를 넣어서 보내야 한다.
 # json 형식으로 데이터를 보낼 때는 json.dumps()를 사용한다.
 @app.post(
-        "/api/v1/user/register", description="유저 등록",
-        status_code=status.HTTP_200_OK, response_class=JSONResponse,
+        "/api/v1/user/register", description="유저 등록", response_class=JSONResponse,
         responses={
             200: { "description": "성공" },
             400: { "description": "실패" }
@@ -83,14 +115,13 @@ async def create(user: User):
                 user_email=user.user_email,
                 user_phone=user.user_phone
             )
-            result = UserCommands().create(session, new_user)
-            return JSONResponse(status_code=200, content={"message": result})
+            UserCommands().create(session, new_user)
+            return JSONResponse(status_code=200, content={"message": "success"})
     except Exception as e:
         raise JSONResponse(status_code=400, content={"message": str(e)})
     
 @app.put(
-        "/api/v1/user/update", description="유저 정보 수정",
-        status_code=status.HTTP_200_OK, response_class=JSONResponse,
+        "/api/v1/user/update", description="유저 정보 수정", response_class=JSONResponse,
         responses={
             200: { "description": "성공" },
             400: { "description": "실패" }
@@ -110,8 +141,7 @@ async def update(user: User):
         return JSONResponse(status_code=200, content={"message": result})
     
 @app.delete(
-        "/api/v1/user/delete", description="유저 삭제",
-        status_code=status.HTTP_200_OK, response_class=JSONResponse,
+        "/api/v1/user/delete", description="유저 삭제", response_class=JSONResponse,
         responses={
             200: { "description": "성공" },
             400: { "description": "실패" },
@@ -145,7 +175,7 @@ async def logout(sessionUID: Annotated[User, Depends(getCurrentUser)]):
         # redis에서도 삭제
         redisSession.deleteData(sessionUID.username)
 
-        return {"message": "success"}
+        return JSONResponse(status_code=200, content={"message": "success"})
     except HTTPException as e:
         if HTTPException.status_code == 401:
             return JSONResponse(status_code=401, content={"message": "unauthorized"})

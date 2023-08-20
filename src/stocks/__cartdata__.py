@@ -1,6 +1,5 @@
 from fastapi.responses import JSONResponse
 
-from src.database.__conn__ import conn
 from src.database.__cart__ import Cart, CartTable
 from src.settings.dependency import *
 
@@ -26,17 +25,19 @@ async def addCart(cart: Cart, temp: Annotated[User, Depends(getCurrentUser)]):
         with sessionFix() as session:
             new_cart = CartTable(
                 user_id=temp.username,
+                table_number = cart.table_number,
                 product_id=cart.product_id,
                 product_price=cart.product_price,
-                product_count=cart.product_count
+                product_count=cart.product_count,
+                product_option=cart.product_option
             )
             if CartCommands().create(session, new_cart) == None:
-                return {"message": "success"}
+                return JSONResponse(status_code=200, content={"message": "success"})
             else:
-                return HTTPException(status_code=400, detail="fail")
+                return JSONResponse(status_code=400, content={"message": "fail"})
             
     except Exception as e:
-        return {"message": e}
+        return JSONResponse(status_code=400, content={"message": str(e)})
     
 
 # 장바구니 목록
@@ -48,16 +49,16 @@ async def addCart(cart: Cart, temp: Annotated[User, Depends(getCurrentUser)]):
             400: { "description": "실패" }
         }, tags=["cart"]
     )
-async def cartList(temp: Annotated[User, Depends(getCurrentUser)]):
+async def cartLisAll(temp: Annotated[User, Depends(getCurrentUser)]):
     try:
         try:
             with sessionFix() as session:
                 cart = CartCommands().read(session, CartTable)
-                return cart
+                return JSONResponse(status_code=200, content={"message": "success", "data": cart})
         except:
-            return HTTPException(status_code=400, detail="fail")
-    except Exception as e:
-        return {"message": "로그인이 필요합니다."}
+            return JSONResponse(status_code=400, content={"message": "fail"})
+    except Exception:
+        return JSONResponse(status_code=400, content={"message": "fail"})
     
 
 # 특정 사용자의 장바구니 목록
@@ -75,9 +76,9 @@ async def cartList(sessionUID: Annotated[User, Depends(getCurrentUser)]):
     try:
         with sessionFix() as session:
             cart = CartCommands().read(session, CartTable, id=sessionUID.username)
-            return cart
+            return JSONResponse(status_code=200, content={"message": "success", "data": cart})
     except:
-        return HTTPException(status_code=400, detail="fail")
+        return JSONResponse(status_code=400, content={"message": "fail"})
 
 # 장바구니에서 해당 품목 삭제
 @app.delete(
@@ -96,10 +97,13 @@ async def deleteCart(
 ):
     try:
         with sessionFix() as session:
-            cart = CartCommands().delete(session, CartTable, user_id=temp.username, product_id=product_id)
-            return {"message": "장바구니에서 삭제되었습니다."}
+            try:
+                CartCommands().delete(session, CartTable, user_id=temp.username, product_id=product_id)
+                return JSONResponse(status_code=200, content={"message": "success"})
+            except:
+                return JSONResponse(status_code=400, content={"message": "fail"})
     except Exception as e:
-        return HTTPException(status_code=400, detail=e)    
+        return JSONResponse(status_code=400, content={"message": str(e)})
 
 # 장바구니에서 상품 개수 수정
 @app.put(
