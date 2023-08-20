@@ -1,4 +1,3 @@
-from src.database.__cart__ import Cart, CartTable
 from src.database.__user__ import UserTable, User
 from src.settings.dependency import *
 

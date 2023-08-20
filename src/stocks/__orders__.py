@@ -44,10 +44,9 @@ async def addOrder(order: Order, temp: Annotated[User, Depends(getCurrentUser)])
             if OrderCommands().create(session, new_order) == None:
                 return {"message": "success"}
             else:
-                return HTTPException(status_code=400, detail="fail")
-            
+                return JSONResponse(status_code=400, content={"message": "fail"})            
     except Exception as e:
-        return {"message": "로그인이 필요합니다."}
+        return JSONResponse(status_code=400, content={"message": str(e)})
 
 # 장바구니 목록
 @app.get(
@@ -63,9 +62,9 @@ async def orderList(temp: Annotated[User, Depends(getCurrentUser)], store_code: 
     try:
         with sessionFix() as session:
             order = OrderCommands().readTableOrder(session, OrderTable, store_code=store_code, table_number=table_number, status=status)
-            return order
+            return JSONResponse(status_code=200, content={"message": "success", "data": order})
     except:
-        return HTTPException(status_code=400, detail="fail")
+        return JSONResponse(status_code=400, content={"message": "fail"})
     
 
 # 특정 사용자의 장바구니 목록
@@ -83,10 +82,9 @@ async def orderListAll(temp: Annotated[User, Depends(getCurrentUser)]):
     try:
         with sessionFix() as session:
             order = OrderCommands().read(session, OrderTable, id=temp.username)
-            return order
+            return JSONResponse(status_code=200, content={"message": "success", "data": order})
     except Exception as e:
-        print(e)
-        return {"message": str(e)}
+        return JSONResponse(status_code=400, content={"message": "fail"})
 
 # 장바구니에서 해당 품목 삭제
 @app.delete(
@@ -106,6 +104,6 @@ async def deleteCart(
     try:
         with sessionFix() as session:
             OrderCommands().delete(session, OrderTable, user_id=temp.username, product_id=product_id)
-            return {"message": "장바구니에서 삭제되었습니다."}
+            return JSONResponse(status_code=200, content={"message": "success"})
     except Exception:
-        return {"message": "로그인이 필요합니다."}
+        return JSONResponse(status_code=400, content={"message": "fail"})

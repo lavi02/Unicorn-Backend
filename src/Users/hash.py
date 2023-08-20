@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Union
 from typing_extensions import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, HTTPException, status
 from src.database.__conn__ import *
 from src.database.__user__ import *
 from src.Users.__crud__ import *
@@ -24,7 +24,7 @@ class TokenData(BaseModel):
 
 class UserToken(BaseModel):
     username: Union[str, None] = None
-    is_valid: Union[bool, None] = True
+    token: Union[str, None] = None
 
 class hashData():
     @staticmethod
@@ -48,6 +48,17 @@ class hashData():
         return encoded_jwt
     
     @staticmethod
+    def create_refresh_token(user_id: str, expires_delta: Union[timedelta, None] = None):
+        to_encode = {"sub": user_id}
+        if expires_delta:
+            expire = datetime.now(timezone(timedelta(hours=9))) + expires_delta
+        else:
+            expire = datetime.now(timezone(timedelta(hours=9))) + timedelta(days=7)
+        to_encode.update({"exp": expire})
+        encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=ALGORITHM)
+        return encoded_jwt
+    
+    @staticmethod
     def verify_token(token: Annotated[str, Depends(oauth2Schema)]):
         with sessionFix() as session:
             credentialsException = HTTPException(
@@ -60,7 +71,7 @@ class hashData():
                 user_id: str = payload.get("sub")
                 if user_id is None:
                     raise credentialsException
-                token_data = UserToken(username=user_id)
+                token_data = UserToken(username=user_id, token=token)
             except JWTError:
                 raise credentialsException
             
@@ -72,9 +83,15 @@ class hashData():
 async def getCurrentUser(
         token: Annotated[User, Depends(hashData().verify_token)]
     ):
-    if token.is_valid:
+    redisSession = redisData(conn.redisConnect("session"))
+    storedToken = redisSession.getData(token.username).decode("utf-8")
+
+    if storedToken == token.token:
         return token
     else:
+        # 토큰만료 확인
+        if storedToken is None:
+            raise HTTPException(status_code=401, detail="Token expired")
         raise HTTPException(status_code=400, detail="Invalid token")
 
 class redisData:
