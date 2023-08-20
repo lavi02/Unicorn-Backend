@@ -1,14 +1,8 @@
-# Dockerfile
+FROM python:3.8 as builder
 
-FROM python:3.8
-
-RUN mkdir /app
+# Setup working directory
 WORKDIR /app
+COPY . .
 
-COPY ./requirements.txt /app/requirements.txt
+# Build
 RUN pip3 install -r requirements.txt
-
-COPY . /app
-EXPOSE 80
-
-CMD ["uvicorn", "main:app", "--port", "8000", "--workers", "4"]
