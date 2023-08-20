@@ -73,14 +73,14 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
                 )
                 refreshToken = hashData.create_refresh_token(data={"sub": user.user_id})
                 if redisSession.setData(form_data.username, str(access_token), 86400):
-                    return JSONResponse(status_code=200, content={"access_token": access_token, "refresh_token": refreshToken})
+                    return {"access_token": access_token, "refresh_token": refreshToken}
 
                 else:
-                    return JSONResponse(status_code=400, content={"message": "redis에 저장에 실패했습니다."})
+                    return {"message": "redis error"}
             else:
-                return JSONResponse(status_code=400, content={"message": "비밀번호가 일치하지 않습니다."})
+                return {"message": "비밀번호가 일치하지 않습니다."}
     except Exception:
-        return JSONResponse(status_code=400, content={"message": "로그인에 실패했습니다."})
+        return {"message": "error"}
 
 @app.get("/api/v1/user/login", description="유저 로그인", tags=["user"])
 async def login(id: str, pw: str):
