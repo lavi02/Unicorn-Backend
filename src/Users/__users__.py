@@ -95,6 +95,7 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
                     else:
                         redisSession.deleteData(form_data.username)
                         redisSession.deleteData(form_data.username+"_refresh_token")
+                        
                         return {"message": "redis error"}
 
                 else:
