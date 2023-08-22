@@ -45,16 +45,16 @@ async def refresh_access_token(refresh_token: str):
         user_id: str = payload.get("sub")
 
         if user_id is None:
-            raise JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
+            return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content="Could not validate credentials")
     except JWTError:
-        raise JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
+        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content="Could not validate credentials")
 
     with sessionFix() as session:
         user = UserCommands().read(session, UserTable, id=user_id)
         if user is None:
-            raise JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
-        if redisSession.getData(user_id+"_refresh_token") != refresh_token:
-            raise JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
+            return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content="Could not validate credentials")
+        if redisSession.getData(user_id+"_refresh_token").decode("utf-8") != refresh_token:
+            return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content="Could not validate credentials")
 
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = hashData.create_user_token(
