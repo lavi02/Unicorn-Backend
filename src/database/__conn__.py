@@ -2,6 +2,7 @@ import boto3
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
+from fastapi import UploadFile
 import redis
 
 Base = declarative_base()
@@ -42,7 +43,7 @@ class CONNECT:
         self.REDIS_PORT: str = "6379"
         self.REDIS_DBNAME: int = 0
     
-    def s3Session(self, filePath: str, fileName: str):
+    def s3Session(self, file: UploadFile, fileName: str):
         """
         Args:
             filePath (str): 파일경로
@@ -55,8 +56,8 @@ class CONNECT:
                 aws_access_key_id=self.CLIENTKEY,
                 aws_secret_access_key=self.SECRETKEY
             )
-            response = s3.upload_file(filePath, self.BUCKET, fileName)
-            return response
+            s3.upload_fileobj(file.file, self.BUCKET, fileName)
+            return "success"
 
         except Exception as e:
             return (str(e))
@@ -93,4 +94,5 @@ class CONNECT:
 
 
 conn = CONNECT()
+Uploader = conn.s3Session
 Session = conn.rdsSession()

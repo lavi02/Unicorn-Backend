@@ -1,5 +1,7 @@
 import random
 import string
+from typing import List
+from fastapi import Form, File, UploadFile
 from fastapi.responses import JSONResponse
 
 from src.database.__stocks__ import Stocks, StocksTable
@@ -26,17 +28,34 @@ def generate_random_string(length):
             401: { "description": "권한 없음" }
         }, tags=["product"]
     )
-async def addStocks(stocks: Stocks, temp: Annotated[User, Depends(getCurrentUser)]):
+async def addStocks(
+    temp: Annotated[User, Depends(getCurrentUser)],
+    store_code: str = Form(...),
+    stock_name: str = Form(...),
+    stock_price: str = Form(...),
+    stock_description: str = Form(None),
+    stock_option: dict = Form(None),
+    stock_images: List[UploadFile] = File(...)
+):
     try:
         with sessionFix() as session:
             stock_id = generate_random_string(24)
+            imageUrls = []
+
+            for file in stock_images:
+                result = Uploader(file, f"/{store_code}/{stock_id}/{file.filename}")
+                if result == "success":
+                    imageUrls.append(f"/{store_code}/{stock_id}/{file.filename}")
+                else:
+                    return JSONResponse(status_code=400, content={"message": "cannot upload image to s3"})
             new_stock = StocksTable(
-                store_code=stocks.store_code,
-                stock_name=stocks.stock_name,
+                store_code=store_code,
+                stock_name=stock_name,
                 stock_id=stock_id,
-                stock_price=stocks.stock_price,
-                stock_description=stocks.stock_description,
-                stock_option=stocks.stock_option,
+                stock_price=stock_price,
+                stock_description=stock_description,
+                stock_option=stock_option,
+                stock_image=imageUrls
             )
             if StocksCommands().create(session, new_stock) == None:
                 return JSONResponse(status_code=200, content={"message": "success", "stock_id": stock_id})
@@ -45,6 +64,8 @@ async def addStocks(stocks: Stocks, temp: Annotated[User, Depends(getCurrentUser
             
     except Exception:
         return JSONResponse(status_code=401, content={"message": "로그인이 필요합니다."})
+
+
 
 # 장바구니 목록
 @app.get(

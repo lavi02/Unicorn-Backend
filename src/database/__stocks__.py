@@ -1,6 +1,6 @@
 from pydantic import BaseModel
-from typing import Union
-from sqlalchemy import Column, String, inspect, ForeignKey, Text, JSON
+from typing import Union, List
+from sqlalchemy import Column, String, inspect, ForeignKey, Text, JSON, ARRAY
 
 from .__conn__ import *
 
@@ -12,6 +12,7 @@ class StocksTable(Base):
     stock_price = Column(String(50), nullable=False)
     stock_description = Column(Text, nullable=True)
     stock_option = Column(JSON, nullable=True)
+    stock_images = Column(ARRAY(String), nullable=True, default=[])
     
 
 class Stocks(BaseModel):
@@ -21,6 +22,7 @@ class Stocks(BaseModel):
     stock_price: str
     stock_description: Union[str, None] = None
     stock_option: Union[dict, None] = None
+    stock_images: List[str] = []
 
 # CartTable 테이블 생성
 # 이미 생성되어있는지 확인 후 생성
