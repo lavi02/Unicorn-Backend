@@ -15,11 +15,11 @@ class CONNECT:
 
     def __init__(self):
         self.REGION: str = "ap-northeast-2"
-        self.CLIENTKEY: str = ""
-        self.SECRETKEY: str = ""
+        self.CLIENTKEY: str = "AKIASMEYUNS7LEQKLXBY"
+        self.SECRETKEY: str = "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"
 
         # s3 settings
-        self.BUCKET: str = ""
+        self.BUCKET: str = "image-deploy-d"
 
         # rds settings
         self.USERNAME: str = "dev"

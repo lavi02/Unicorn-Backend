@@ -1,10 +1,10 @@
-import random
+import random, json
 import string
 from typing import List
 from fastapi import Form, File, UploadFile
 from fastapi.responses import JSONResponse
 
-from src.database.__stocks__ import Stocks, StocksTable
+from src.database.__stocks__ import Stocks, StockImages, StocksTable
 from src.database.__store__ import Store, StoreTable, StoreUser, StoreUserTable
 from src.stocks.store.__crud__ import StocksCommands
 from src.settings.dependency import *
@@ -28,22 +28,91 @@ def generate_random_string(length):
             401: { "description": "권한 없음" }
         }, tags=["product"]
     )
-async def addStocks(
+async def addStocks(stocks: Stocks, temp: Annotated[User, Depends(getCurrentUser)]):
+    try:
+        with sessionFix() as session:
+            stock_id = generate_random_string(24)
+            new_stock = StocksTable(
+                store_code=stocks.store_code,
+                stock_name=stocks.stock_name,
+                stock_id=stock_id,
+                stock_price=stocks.stock_price,
+                stock_description=stocks.stock_description,
+                stock_option=stocks.stock_option,
+            )
+            if StocksCommands().create(session, new_stock) == None:
+                return JSONResponse(status_code=200, content={"message": "success", "stock_id": stock_id})
+            else:
+                return JSONResponse(status_code=400, content={"message": "fail"})
+            
+    except Exception:
+        return JSONResponse(status_code=401, content={"message": "로그인이 필요합니다."})
+    
+@app.post(
+        "/api/v1/stocks/add/image", description="상품목록 이미지 추가",
+        status_code=status.HTTP_200_OK, response_class=JSONResponse,
+        responses={
+            200: { "description": "성공" },
+            400: { "description": "실패" },
+            401: { "description": "권한 없음" }
+        }, tags=["product"]
+    )
+async def addStocksImage(
+    temp: Annotated[User, Depends(getCurrentUser)],
+    store_code: str = Form(...),
+    stock_id: str = Form(...),
+    stock_images: List[UploadFile] = File(...)
+):
+    try:
+        with sessionFix() as session:
+            imageUrls = []
+
+            for file in stock_images:
+                result = Uploader(file, f"images/{store_code}/{stock_id}/{file.filename}")
+                if result == "success":
+                    imageUrls.append(f"/{store_code}/{stock_id}/{file.filename}")
+                else:
+                    return JSONResponse(status_code=400, content={"message": "cannot upload image to s3"})
+            stockData = StocksCommands().readStoreStocks(session, StocksTable, store_code=store_code, stock_id=stock_id)
+            if len(stockData) == 0:
+                return JSONResponse(status_code=400, content={"message": "cannot find stock"})
+            new_images = [StockImages(image=url) for url in imageUrls]
+            stockData[0].stock_images.extend(new_images)
+
+            if StocksCommands().onlyCommit(session) == None:
+                return JSONResponse(status_code=200, content={"message": "success", "stock_id": stock_id})
+            else:
+                return JSONResponse(status_code=400, content={"message": "fail"})
+            
+    except Exception as e:
+        return JSONResponse(status_code=401, content={"message": str(e)})
+
+@app.post(
+        "/api/v1/stocks/add/temp", description="상품목록 추가",
+        status_code=status.HTTP_200_OK, response_class=JSONResponse,
+        responses={
+            200: { "description": "성공" },
+            400: { "description": "실패" },
+            401: { "description": "권한 없음" }
+        }, tags=["product"]
+    )
+async def addStocksTemp(
     temp: Annotated[User, Depends(getCurrentUser)],
     store_code: str = Form(...),
     stock_name: str = Form(...),
     stock_price: str = Form(...),
     stock_description: str = Form(None),
-    stock_option: dict = Form(None),
+    stock_option: str = Form(None),
     stock_images: List[UploadFile] = File(...)
 ):
     try:
         with sessionFix() as session:
+            stock_option = json.loads(stock_option)
             stock_id = generate_random_string(24)
             imageUrls = []
 
             for file in stock_images:
-                result = Uploader(file, f"/{store_code}/{stock_id}/{file.filename}")
+                result = Uploader(file, f"images/{store_code}/{stock_id}/{file.filename}")
                 if result == "success":
                     imageUrls.append(f"/{store_code}/{stock_id}/{file.filename}")
                 else:
@@ -54,9 +123,11 @@ async def addStocks(
                 stock_id=stock_id,
                 stock_price=stock_price,
                 stock_description=stock_description,
-                stock_option=stock_option,
-                stock_image=imageUrls
+                stock_option=stock_option
             )
+            stock_images = [StockImages(image=url) for url in imageUrls]
+            new_stock.stock_images = stock_images
+
             if StocksCommands().create(session, new_stock) == None:
                 return JSONResponse(status_code=200, content={"message": "success", "stock_id": stock_id})
             else:
@@ -90,7 +161,8 @@ async def stocksList(store_code: str,
                     "stock_id": i.stock_id,
                     "stock_price": i.stock_price,
                     "stock_description": i.stock_description,
-                    "stock_option": i.stock_option
+                    "stock_option": i.stock_option,
+                    "stock_images": [j.image for j in i.stock_images]
                 })
             return JSONResponse(status_code=200, content={"message": "success", "stocks": stocksList})
     except Exception:

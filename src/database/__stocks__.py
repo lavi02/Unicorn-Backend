@@ -1,8 +1,16 @@
 from pydantic import BaseModel
 from typing import Union, List
-from sqlalchemy import Column, String, inspect, ForeignKey, Text, JSON, ARRAY
+from sqlalchemy import Column, String, inspect, ForeignKey, Text, JSON, Integer
+from sqlalchemy.orm import relationship
 
 from .__conn__ import *
+
+class StockImages(Base):
+    __tablename__ = 'stock_images'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    stock_id = Column(String(50), ForeignKey("stocks.stock_id"))
+    image = Column(String(255), nullable=False)
+    stock = relationship("StocksTable", back_populates="stock_images")
 
 class StocksTable(Base):
     __tablename__ = 'stocks'
@@ -12,7 +20,7 @@ class StocksTable(Base):
     stock_price = Column(String(50), nullable=False)
     stock_description = Column(Text, nullable=True)
     stock_option = Column(JSON, nullable=True)
-    stock_images = Column(ARRAY(String), nullable=True, default=[])
+    stock_images = relationship("StockImages", back_populates="stock")
     
 
 class Stocks(BaseModel):
@@ -31,3 +39,5 @@ class Stocks(BaseModel):
 inspector = inspect(conn.engineData())
 if not inspector.has_table('stocks'):
     StocksTable.__table__.create(bind=conn.engineData())
+if not inspector.has_table('stock_images'):
+    StockImages.__table__.create(bind=conn.engineData())

@@ -2,6 +2,12 @@ from src.settings.dependency import *
 
 # store.store_code is foreign key
 class StocksCommands:
+    def onlyCommit(self, session):
+        try:
+            session.commit()
+            return None
+        except Exception as e:
+            return str(e)
     def create(self, session, target):
         try:
             session.add(target)

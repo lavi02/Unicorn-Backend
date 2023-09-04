@@ -58,7 +58,7 @@ async def addOrder(order: Order, temp: Annotated[User, Depends(getCurrentUser)])
             401: { "description": "로그인이 필요합니다." }
         }, tags=["order"]
     )
-async def orderListAll(_: Annotated[User, Depends(getCurrentUser)], store_code: str = None, table_number: str = None, status: bool = None):
+async def orderListAll(_: Annotated[User, Depends(getCurrentUser)], store_code: str = None, table_number: str = None, status: bool = False):
     try:
         with sessionFix() as session:
             order = OrderCommands().readTableOrder(session, OrderTable, store_code=store_code, table_number=table_number, status=status)

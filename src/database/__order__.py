@@ -23,7 +23,7 @@ class Order(BaseModel):
     product_price: int
     product_count: int
     product_option: Union[dict, None] = None
-    product_status: bool
+    product_status: Union[bool, None] = False
 
 # CartTable 테이블 생성
 # 이미 생성되어있는지 확인 후 생성
