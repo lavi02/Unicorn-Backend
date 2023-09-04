@@ -135,6 +135,26 @@ async def addStocksTemp(
             
     except Exception:
         return JSONResponse(status_code=401, content={"message": "로그인이 필요합니다."})
+    
+# 상품 삭제
+@app.delete(
+        "/api/v1/stocks/delete/images", description="상품 삭제",
+        status_code=status.HTTP_200_OK, response_class=JSONResponse,
+        responses={
+            200: { "description": "성공" },
+            400: { "description": "실패" },
+            401: { "description": "로그인이 필요합니다." }
+        }, tags=["product"]
+    )
+async def deleteStocksImages(store_code: str, stock_id: str, stock_images: str, temp: Annotated[User, Depends(getCurrentUser)]):
+    try:
+        if stock_images == None:
+            return JSONResponse(status_code=400, content={"message": "stock_images is None"})
+        with sessionFix() as session:
+            StocksCommands().deleteStocksImages(session, StocksTable, store_code=store_code, stock_id=stock_id, urls=stock_images)
+            return JSONResponse(status_code=200, content={"message": "success"})
+    except Exception:
+        return JSONResponse(status_code=401, content={"message": "로그인이 필요합니다."})
 
 
 

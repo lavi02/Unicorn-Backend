@@ -1,4 +1,5 @@
 from src.settings.dependency import *
+from src.database.__stocks__ import *
 
 # store.store_code is foreign key
 class StocksCommands:
@@ -98,5 +99,16 @@ class StocksCommands:
         try:
             tmpSession.query(where).filter_by(store_code=store_code).filter_by(stock_id=stock_id).delete()
             tmpSession.commit()
+        except Exception as e:
+            return str(e)
+        
+    def deleteStocksImages(self, tmpSession, where, store_code, stock_id, urls):
+        try:
+            stock = tmpSession.query(where).filter_by(stock_id=stock_id).first()
+            if stock:
+                image = tmpSession.query(StockImages).filter_by(image=urls).first()
+                if image:
+                    tmpSession.delete(image)
+                tmpSession.commit()
         except Exception as e:
             return str(e)
