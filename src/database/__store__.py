@@ -1,6 +1,12 @@
 from pydantic import BaseModel
 from typing import Union
-from sqlalchemy import Column, String, inspect, ForeignKey, Text, Boolean
+from sqlalchemy import (
+    Column, String, inspect,
+    ForeignKey, Text, Boolean,
+    Integer, DateTime
+)
+import pytz
+from datetime import datetime
 
 from .__conn__ import *
 
@@ -18,6 +24,17 @@ class StoreUserTable(Base):
     user_email = Column(String(50), nullable=False) # 이메일
     user_phone = Column(String(50), nullable=False) # 전화번호
 
+class StoreConnTable(Base):
+    __tablename__ = 'generated'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    store_code = Column(String(50), ForeignKey("store.store_code"), nullable=False)
+    table_number = Column(String(50), nullable=False)
+    table_code = Column(String(50), nullable=False)
+    generated_time = Column(DateTime, primary_key=True, default=datetime.now(
+        pytz.timezone('Asia/Seoul')))
+    table_status = Column(Boolean, nullable=False, default=False)
+
+
 class Store(BaseModel):
     store_code: str
     store_name: str
@@ -30,6 +47,10 @@ class StoreUser(BaseModel):
     user_email: str
     user_phone: str
 
+class StoreConn(BaseModel):
+    store_code: str
+    table_number: str
+
 # CartTable 테이블 생성
 # 이미 생성되어있는지 확인 후 생성
 # <class 'sqlalchemy.engine.base.Connection'>
@@ -39,3 +60,5 @@ if not inspector.has_table('store'):
     StoreTable.__table__.create(bind=conn.engineData())
 if not inspector.has_table('store_user'):
     StoreUserTable.__table__.create(bind=conn.engineData())
+if not inspector.has_table('generated'):
+    StoreConnTable.__table__.create(bind=conn.engineData())

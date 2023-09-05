@@ -107,7 +107,8 @@ async def addStocksTemp(
 ):
     try:
         with sessionFix() as session:
-            stock_option = json.loads(stock_option)
+            if stock_option != None:
+                stock_option = json.loads(stock_option)
             stock_id = generate_random_string(24)
             imageUrls = []
 
@@ -133,8 +134,8 @@ async def addStocksTemp(
             else:
                 return JSONResponse(status_code=400, content={"message": "fail"})
             
-    except Exception:
-        return JSONResponse(status_code=401, content={"message": "로그인이 필요합니다."})
+    except Exception as e:
+        return JSONResponse(status_code=401, content={"message": str(e)})
     
 # 상품 삭제
 @app.delete(
@@ -182,7 +183,8 @@ async def stocksList(store_code: str,
                     "stock_price": i.stock_price,
                     "stock_description": i.stock_description,
                     "stock_option": i.stock_option,
-                    "stock_images": [j.image for j in i.stock_images]
+                    "stock_images": [j.image for j in i.stock_images],
+                    "stock_status": i.stock_status
                 })
             return JSONResponse(status_code=200, content={"message": "success", "stocks": stocksList})
     except Exception:
@@ -216,6 +218,27 @@ async def updateStocks(stocks: Stocks, temp: Annotated[User, Depends(getCurrentU
             
     except Exception as e:
         return JSONResponse(status_code=401, content={"message": "로그인이 필요합니다."})
+    
+# 상품내용 변경
+@app.put(
+        "/api/v1/stocks/status/{store_code}/{stock_id}/{status}", description="상품 품절 여부",
+        status_code=status.HTTP_200_OK, response_class=JSONResponse,
+        responses={
+            200: { "description": "성공" },
+            400: { "description": "실패" },
+            401: { "description": "로그인이 필요합니다." }
+        }, tags=["product"]
+    )
+async def updateStocksStatus(store_code, stock_id, status, temp: Annotated[User, Depends(getCurrentUser)]):
+    try:
+        with sessionFix() as session:
+            if StocksCommands().updateStoreStocksStatus(session, StocksTable, status, store_code, stock_id) == None:
+                return JSONResponse(status_code=200, content={"message": "success"})
+            else:
+                return JSONResponse(status_code=400, content={"message": "fail"})
+            
+    except Exception as e:
+        return JSONResponse(status_code=401, content={"message": str(e)})
     
 
 # 상품 삭제

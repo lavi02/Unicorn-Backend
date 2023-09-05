@@ -1,6 +1,9 @@
 from pydantic import BaseModel
 from typing import Union, List
-from sqlalchemy import Column, String, inspect, ForeignKey, Text, JSON, Integer
+from sqlalchemy import ( 
+    Column, String, inspect, 
+    ForeignKey, Text, JSON,
+    Integer, Boolean )
 from sqlalchemy.orm import relationship
 
 from .__conn__ import *
@@ -21,6 +24,7 @@ class StocksTable(Base):
     stock_description = Column(Text, nullable=True)
     stock_option = Column(JSON, nullable=True)
     stock_images = relationship("StockImages", back_populates="stock")
+    stock_status = Column(String(50), nullable=False, default="판매중")
     
 
 class Stocks(BaseModel):

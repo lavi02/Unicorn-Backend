@@ -62,6 +62,19 @@ class StocksCommands:
         except Exception as e:
             return str(e)
         
+    def updateStoreStocksStatus(self, tmpSession, where, status, store_code, stock_id):
+        # change DB Data
+        try:
+            tmpSession.query(where).filter_by(store_code=store_code).filter_by(stock_id=stock_id).update({
+                where.stock_status: status
+            })
+
+            tmpSession.commit()
+
+            return None
+        except Exception as e:
+            return str(e)
+        
     def updateStoreInfo(self, tmpSession, where, target):
         # change DB Data
         try:
@@ -97,6 +110,7 @@ class StocksCommands:
     
     def deleteStocks(self, tmpSession, where, store_code, stock_id):
         try:
+            tmpSession.query(StockImages).filter_by(stock_id=stock_id).delete()
             tmpSession.query(where).filter_by(store_code=store_code).filter_by(stock_id=stock_id).delete()
             tmpSession.commit()
         except Exception as e:
