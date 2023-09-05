@@ -52,8 +52,9 @@ class StocksCommands:
                 where.stock_id: target.stock_id,
                 where.stock_name: target.stock_name,
                 where.stock_price: target.stock_price,
-                where.stock_option: target.stock_option,
                 where.stock_description: target.stock_description,
+                where.stock_option: target.stock_option,
+                where.stock_category: target.stock_category
             })
 
             tmpSession.commit()
