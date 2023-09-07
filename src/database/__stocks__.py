@@ -23,6 +23,7 @@ class StocksTable(Base):
     stock_price = Column(String(50), nullable=False)
     stock_description = Column(Text, nullable=True)
     stock_option = Column(JSON, nullable=True)
+    stock_category = Column(String(50), nullable=True)
     stock_images = relationship("StockImages", back_populates="stock")
     stock_status = Column(String(50), nullable=False, default="판매중")
     
@@ -34,6 +35,7 @@ class Stocks(BaseModel):
     stock_price: str
     stock_description: Union[str, None] = None
     stock_option: Union[dict, None] = None
+    stock_category: Union[str, None] = None
     stock_images: List[str] = []
 
 # CartTable 테이블 생성

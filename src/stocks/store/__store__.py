@@ -39,6 +39,7 @@ async def addStocks(stocks: Stocks, temp: Annotated[User, Depends(getCurrentUser
                 stock_price=stocks.stock_price,
                 stock_description=stocks.stock_description,
                 stock_option=stocks.stock_option,
+                stock_category=stocks.stock_category
             )
             if StocksCommands().create(session, new_stock) == None:
                 return JSONResponse(status_code=200, content={"message": "success", "stock_id": stock_id})
@@ -209,6 +210,7 @@ async def updateStocks(stocks: Stocks, temp: Annotated[User, Depends(getCurrentU
                 stock_price=stocks.stock_price,
                 stock_description=stocks.stock_description,
                 stock_option=stocks.stock_option,
+                stock_category=stocks.stock_category
             )
             if StocksCommands().updateStoreStocks(session, StocksTable, target) == None:
                 return JSONResponse(status_code=200, content={"message": "success"})
