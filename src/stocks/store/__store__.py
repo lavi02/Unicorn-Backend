@@ -169,8 +169,7 @@ async def deleteStocksImages(store_code: str, stock_id: str, stock_images: str, 
             401: { "description": "로그인이 필요합니다." }
         }, tags=["product"]
     )
-async def stocksList(store_code: str, 
-                    _: Annotated[User, Depends(getCurrentUser)], stock_id: Union[str, None] = None):
+async def stocksList(store_code: str, stock_id: Union[str, None] = None):
     try:
         with sessionFix() as session:
             stocks = StocksCommands().readStoreStocks(session, StocksTable, store_code=store_code, stock_id=stock_id)
@@ -295,7 +294,7 @@ async def addStore(store: Store, temp: Annotated[User, Depends(getCurrentUser)])
             400: { "description": "실패" }
         }, tags=["store"]
     )
-async def stores(_: Annotated[User, Depends(getCurrentUser)], store_code: Union[str, None] = None, store_status: Union[bool, None] = None):
+async def stores(store_code: Union[str, None] = None, store_status: Union[bool, None] = None):
     try:
         with sessionFix() as session:
             storeData = StocksCommands().readStore(session, StoreTable, store_code=store_code, store_status=store_status)
