@@ -3,7 +3,7 @@ name: Deploy to ECR
 on:
   push:
     branches:
-      - main
+      - master
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -31,5 +31,5 @@ jobs:
       - name: Build and push Docker images
         run: |
           docker-compose build
-          docker tag my-service $ECR_REPOSITORY:latest
+          docker tag unicorn:latest $ECR_REPOSITORY:latest
           docker push $ECR_REPOSITORY:latest
