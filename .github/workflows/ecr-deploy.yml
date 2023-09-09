@@ -30,6 +30,6 @@ jobs:
 
       - name: Build and push Docker images
         run: |
-          docker-compose build
+          docker build -t unicorn:latest .
           docker tag unicorn:latest $ECR_REPOSITORY:latest
           docker push $ECR_REPOSITORY:latest
