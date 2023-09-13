@@ -166,8 +166,7 @@ async def deleteStocksImages(store_code: str, stock_id: str, stock_images: str, 
         status_code=status.HTTP_200_OK, response_class=JSONResponse,
         responses={
             200: { "description": "성공" },
-            400: { "description": "실패" },
-            401: { "description": "로그인이 필요합니다." }
+            400: { "description": "실패" }
         }, tags=["product"]
     )
 async def stocksList(store_code: str, stock_id: Union[str, None] = None):
@@ -187,9 +186,9 @@ async def stocksList(store_code: str, stock_id: Union[str, None] = None):
                     "stock_status": i.stock_status
                 })
             return JSONResponse(status_code=200, content={"message": "success", "stocks": stocksList})
-    except Exception:
-        return JSONResponse(status_code=401, content={"message": "로그인이 필요합니다."})
-    
+    except Exception as e:
+        return JSONResponse(status_code=401, content={"message", str(e)})
+
 # 상품내용 변경
 @app.put(
         "/api/v1/stocks/update", description="상품내용 변경",
