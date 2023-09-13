@@ -1,10 +1,11 @@
 version: "3"
 services:
-  backend:
+  unicorn:
     build:
       context: .
       dockerfile: dockerfile
-    command: uvicorn main:app --port 8000 --reload
+    image: unicorn:latest
+    command: gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
     ports:
       - "8000:8000"
     networks:
