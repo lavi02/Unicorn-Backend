@@ -24,7 +24,7 @@ class CONNECT:
 
         # rds settings
         self.USERNAME: str = "dev"
-        self.PASSWORD: str = "localplayer0"
+        self.PASSWORD: str = "h311on31ghb0r"
         self.ENDPOINT: str = "172.31.49.189"
         self.DBNAME: str = "develop"
         self.PORT: str = "3306"
