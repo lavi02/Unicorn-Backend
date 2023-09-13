@@ -7,6 +7,7 @@ import redis
 
 Base = declarative_base()
 
+
 class CONNECT:
     """
     Returns:
@@ -24,25 +25,25 @@ class CONNECT:
         # rds settings
         self.USERNAME: str = "dev"
         self.PASSWORD: str = "localplayer0"
-        self.ENDPOINT: str = "localhost"
+        self.ENDPOINT: str = "172.31.49.189"
         self.DBNAME: str = "develop"
         self.PORT: str = "3306"
         self.rds = create_engine(
-                f"mysql+pymysql://{self.USERNAME}:{self.PASSWORD}@{self.ENDPOINT}:{self.PORT}/{self.DBNAME}?charset=utf8",
-                echo=True
-            )
-        
+            f"mysql+pymysql://{self.USERNAME}:{self.PASSWORD}@{self.ENDPOINT}:{self.PORT}/{self.DBNAME}?charset=utf8",
+            echo=True
+        )
+
         self.session = sessionmaker(
-                    autocommit=False,
-                    autoflush=False,
-                    bind=self.rds
-                )
+            autocommit=False,
+            autoflush=False,
+            bind=self.rds
+        )
 
         # redis settigns
-        self.REDIS_HOSTNAME: str = "localhost"
+        self.REDIS_HOSTNAME: str = "172.31.49.189"
         self.REDIS_PORT: str = "6379"
         self.REDIS_DBNAME: int = 0
-    
+
     def s3Session(self, file: UploadFile, fileName: str):
         """
         Args:
@@ -61,14 +62,13 @@ class CONNECT:
 
         except Exception as e:
             return (str(e))
-        
+
     def engineData(self):
         return self.rds
-    
-        
+
     def engineData(self):
         return self.rds
-    
+
     def rdsSession(self):
         try:
             return self.session
