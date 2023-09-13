@@ -44,7 +44,7 @@ async def addOrder(order: Order, temp: Annotated[User, Depends(getCurrentUser)])
             if OrderCommands().create(session, new_order) == None:
                 return {"message": "success"}
             else:
-                return JSONResponse(status_code=400, content={"message": "fail"})
+                return {"message": "fail"}
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": str(e)})
 
@@ -80,9 +80,9 @@ async def orderListAll(_: Annotated[User, Depends(getCurrentUser)], store_code: 
     except:
         return JSONResponse(status_code=400, content={"message": "fail"})
 
-
 # 특정 사용자의 장바구니 목록
 # 세션 활용
+
 
 @app.get(
     "/api/v1/order/list", description="장바구니 특정 사용자 목록",
@@ -111,8 +111,6 @@ async def orderList(temp: Annotated[User, Depends(getCurrentUser)]):
             return JSONResponse(status_code=200, content={"message": "success", "data": orderList})
     except Exception:
         return JSONResponse(status_code=400, content={"message": "fail"})
-
-# 장바구니에서 해당 품목 삭제
 
 
 @app.delete(
