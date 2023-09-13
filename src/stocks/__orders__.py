@@ -20,6 +20,7 @@ from src.settings.dependency import app, sessionFix
 # product_status = Column(Boolean, nullable=False, default=False)
 # 장바구니 추가
 @app.post(
+<<<<<<< HEAD
         "/api/v1/order/add", description="주문목록 추가",
         status_code=status.HTTP_200_OK, response_class=JSONResponse,
         responses={
@@ -28,6 +29,16 @@ from src.settings.dependency import app, sessionFix
             401: { "description": "권한 없음" }
         }, tags=["order"]
     )
+=======
+    "/api/v1/order/add", description="주문목록 추가",
+    status_code=status.HTTP_200_OK, response_class=JSONResponse,
+    responses={
+        200: {"description": "성공"},
+        400: {"description": "실패"},
+        401: {"description": "권한 없음"}
+    }, tags=["order"]
+)
+>>>>>>> d982737bebd87a30654a610e94e6f75071f221a3
 async def addOrder(order: Order, temp: Annotated[User, Depends(getCurrentUser)]):
     try:
         with sessionFix() as session:
@@ -44,11 +55,16 @@ async def addOrder(order: Order, temp: Annotated[User, Depends(getCurrentUser)])
             if OrderCommands().create(session, new_order) == None:
                 return {"message": "success"}
             else:
+<<<<<<< HEAD
                 return JSONResponse(status_code=400, content={"message": "fail"})            
+=======
+                return JSONResponse(status_code=400, content={"message": "fail"})
+>>>>>>> d982737bebd87a30654a610e94e6f75071f221a3
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": str(e)})
 
 # 장바구니 목록
+<<<<<<< HEAD
 @app.get(
         "/api/v1/order/list/all", description="전체 사용자의 주문 목록 조회",
         status_code=status.HTTP_200_OK, response_class=JSONResponse,
@@ -62,6 +78,23 @@ async def orderListAll(_: Annotated[User, Depends(getCurrentUser)], store_code: 
     try:
         with sessionFix() as session:
             order = OrderCommands().readTableOrder(session, OrderTable, store_code=store_code, table_number=table_number, status=status)
+=======
+
+
+@app.get(
+    "/api/v1/order/list/all", description="전체 사용자의 주문 목록 조회",
+    status_code=status.HTTP_200_OK, response_class=JSONResponse,
+    responses={
+        200: {"description": "성공"},
+        400: {"description": "실패"},
+        401: {"description": "로그인이 필요합니다."}
+    }, tags=["order"]
+)
+async def orderListAll(_: Annotated[User, Depends(getCurrentUser)], store_code: str = None, table_number: str = None, status: bool = False):
+    try:
+        with sessionFix() as session:
+            order = OrderCommands().read(session, OrderTable)
+>>>>>>> d982737bebd87a30654a610e94e6f75071f221a3
             orderList = []
             for i in order:
                 orderList.append({
@@ -77,12 +110,17 @@ async def orderListAll(_: Annotated[User, Depends(getCurrentUser)], store_code: 
             return JSONResponse(status_code=200, content={"message": "success", "data": orderList})
     except:
         return JSONResponse(status_code=400, content={"message": "fail"})
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> d982737bebd87a30654a610e94e6f75071f221a3
 
 # 특정 사용자의 장바구니 목록
 # 세션 활용
 
 @app.get(
+<<<<<<< HEAD
         "/api/v1/order/list", description="장바구니 특정 사용자 목록",
         status_code=status.HTTP_200_OK, response_class=JSONResponse,
         responses={
@@ -90,6 +128,15 @@ async def orderListAll(_: Annotated[User, Depends(getCurrentUser)], store_code: 
             400: { "description": "실패" }
         }, tags=["order"]
     )
+=======
+    "/api/v1/order/list", description="장바구니 특정 사용자 목록",
+    status_code=status.HTTP_200_OK, response_class=JSONResponse,
+    responses={
+        200: {"description": "성공"},
+        400: {"description": "실패"}
+    }, tags=["order"]
+)
+>>>>>>> d982737bebd87a30654a610e94e6f75071f221a3
 async def orderList(temp: Annotated[User, Depends(getCurrentUser)]):
     try:
         with sessionFix() as session:
@@ -111,6 +158,7 @@ async def orderList(temp: Annotated[User, Depends(getCurrentUser)]):
         return JSONResponse(status_code=400, content={"message": "fail"})
 
 # 장바구니에서 해당 품목 삭제
+<<<<<<< HEAD
 @app.delete(
         "/api/v1/order/delete",
         description="주문 취소",
@@ -121,13 +169,35 @@ async def orderList(temp: Annotated[User, Depends(getCurrentUser)]):
             401: { "description": "로그인이 필요합니다." }
         }, tags=["order"]
     )
+=======
+
+
+@app.delete(
+    "/api/v1/order/delete",
+    description="주문 취소",
+    status_code=status.HTTP_200_OK, response_class=JSONResponse,
+    responses={
+        200: {"description": "성공"},
+        400: {"description": "실패"},
+        401: {"description": "로그인이 필요합니다."}
+    }, tags=["order"]
+)
+>>>>>>> d982737bebd87a30654a610e94e6f75071f221a3
 async def deleteCart(
     product_id: str,
     temp: Annotated[User, Depends(getCurrentUser)]
 ):
     try:
         with sessionFix() as session:
+<<<<<<< HEAD
             OrderCommands().delete(session, OrderTable, user_id=temp.username, product_id=product_id)
             return JSONResponse(status_code=200, content={"message": "success"})
     except Exception:
         return JSONResponse(status_code=400, content={"message": "fail"})
+=======
+            OrderCommands().delete(session, OrderTable,
+                                   user_id=temp.username, product_id=product_id)
+            return JSONResponse(status_code=200, content={"message": "success"})
+    except Exception:
+        return JSONResponse(status_code=400, content={"message": "fail"})
+>>>>>>> d982737bebd87a30654a610e94e6f75071f221a3
