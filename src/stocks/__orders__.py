@@ -44,7 +44,7 @@ async def addOrder(order: Order, temp: Annotated[User, Depends(getCurrentUser)])
             if OrderCommands().create(session, new_order) == None:
                 return {"message": "success"}
             else:
-                return {"message": "fail"}
+                return JSONResponse(status_code=400, content={"message": "fail"})
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": str(e)})
 
