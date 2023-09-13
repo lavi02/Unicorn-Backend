@@ -25,7 +25,7 @@ class CONNECT:
         # rds settings
         self.USERNAME: str = "dev"
         self.PASSWORD: str = "localplayer0"
-        self.ENDPOINT: str = "172.31.49.189"
+        self.ENDPOINT: str = "localhost"
         self.DBNAME: str = "develop"
         self.PORT: str = "3306"
         self.rds = create_engine(
@@ -40,7 +40,7 @@ class CONNECT:
         )
 
         # redis settigns
-        self.REDIS_HOSTNAME: str = "172.31.49.189"
+        self.REDIS_HOSTNAME: str = "localhost"
         self.REDIS_PORT: str = "6379"
         self.REDIS_DBNAME: int = 0
 
