@@ -213,7 +213,7 @@ async def stocksList(store_code: str, stock_id: Union[str, None] = None):
                 })
             return JSONResponse(status_code=200, content={"message": "success", "stocks": stocksList})
     except Exception as e:
-        return JSONResponse(status_code=401, content={"message", str(e)})
+        return JSONResponse(status_code=401, content={"message": str(e)})
 
 # 상품내용 변경
 
