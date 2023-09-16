@@ -111,7 +111,6 @@ async def login(id: str, pw: str):
     form_data = OAuth2PasswordRequestForm(username=id, password=pw)
     try:
         response = await token(form_data)
-        print(response)
         return JSONResponse(status_code=200, content={"message": "success", "data": response})
     
     except Exception as e:
@@ -132,12 +131,15 @@ async def create(user: User):
         with sessionFix() as session:
             # 비밀번호 해싱
             user.user_pw = hashData.get_password_hash(user.user_pw)
+            if user.user_type == None:
+                user.user_type = 0
 
             new_user = UserTable(
                 user_name=user.user_name,
                 user_id=user.user_id,
                 user_pw=user.user_pw,
                 user_email=user.user_email,
+                user_type=user.user_type,
                 user_phone=user.user_phone
             )
             UserCommands().create(session, new_user)
