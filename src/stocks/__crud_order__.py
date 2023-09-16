@@ -53,6 +53,17 @@ class OrderCommands:
             return None
         except Exception as e:
             return str(e)
+    def updateStatus(self, tmpSession, where, user_id, store_code, product_id, status: bool):
+        # change DB Data
+        try:
+            tmpSession.query(where).filter_by(user_id=user_id).filter_by(store_code=store_code).filter_by(product_id=product_id).update({
+                where.product_status: status
+            })
+            tmpSession.commit()
+
+            return None
+        except Exception as e:
+            return str(e)
     def delete(self, tmpSession, where, user_id, product_id):
         try:
             tmpSession.query(where).filter_by(user_id=user_id).filter_by(product_id=product_id).delete()

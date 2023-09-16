@@ -127,3 +127,12 @@ class StocksCommands:
                 tmpSession.commit()
         except Exception as e:
             return str(e)
+    def updateStoreTotalPrice(self, tmpSession, where, store_code, total_price):
+        try:
+            # 기존 total_price에 total_price를 더함
+            tmpSession.query(where).filter_by(store_code=store_code).update({
+            'total_price': where.total_price + total_price
+        }, synchronize_session=False)
+            tmpSession.commit()
+        except Exception as e:
+            return str(e)

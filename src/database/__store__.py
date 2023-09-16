@@ -15,6 +15,7 @@ class StoreTable(Base):
     store_code = Column(String(50), primary_key=True, nullable=False)
     store_name = Column(String(50), nullable=False)
     store_status = Column(Boolean, nullable=False, default=True)
+    total_price = Column(Integer, nullable=False, default=0)
 
 class StoreUserTable(Base):
     __tablename__ = 'store_user'

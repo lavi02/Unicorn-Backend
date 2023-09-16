@@ -111,7 +111,10 @@ async def login(id: str, pw: str):
     form_data = OAuth2PasswordRequestForm(username=id, password=pw)
     try:
         response = await token(form_data)
-        return JSONResponse(status_code=200, content={"message": "success", "data": response})
+        if "access_token" in response and "refresh_token" in response:
+            return JSONResponse(status_code=200, content={"message": "success", "data": response})
+        else:
+            return JSONResponse(status_code=400, content={"message": "Failed to generate tokens"})
     
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": str(e)})

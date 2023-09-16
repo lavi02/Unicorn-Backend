@@ -2,6 +2,8 @@ from fastapi.responses import JSONResponse
 
 from src.database.__order__ import Order, OrderTable
 from src.stocks.__crud_order__ import OrderCommands
+from src.database.__store__ import Store, StoreTable, StoreUser, StoreUserTable
+from src.stocks.store.__crud__ import StocksCommands
 from src.settings.dependency import *
 
 from src.Users.__users__ import *
@@ -60,10 +62,10 @@ async def addOrder(order: Order, temp: Annotated[User, Depends(getCurrentUser)])
         401: {"description": "로그인이 필요합니다."}
     }, tags=["order"]
 )
-async def orderListAll(_: Annotated[User, Depends(getCurrentUser)], store_code: str = None, table_number: str = None, status: bool = False):
+async def orderListAll(_: Annotated[User, Depends(getCurrentUser)], store_code: str = None, status: bool = False):
     try:
         with sessionFix() as session:
-            order = OrderCommands().read(session, OrderTable)
+            order = OrderCommands().read(session, OrderTable, store_cdoe=store_code, product_status=status)
             orderList = []
             for i in order:
                 orderList.append({
@@ -77,8 +79,8 @@ async def orderListAll(_: Annotated[User, Depends(getCurrentUser)], store_code: 
                     "product_status": i.product_status
                 })
             return JSONResponse(status_code=200, content={"message": "success", "data": orderList})
-    except:
-        return JSONResponse(status_code=400, content={"message": "fail"})
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"message": str(e)})
 
 # 특정 사용자의 장바구니 목록
 # 세션 활용
@@ -109,8 +111,8 @@ async def orderList(temp: Annotated[User, Depends(getCurrentUser)]):
                     "product_status": i.product_status
                 })
             return JSONResponse(status_code=200, content={"message": "success", "data": orderList})
-    except Exception:
-        return JSONResponse(status_code=400, content={"message": "fail"})
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"message": str(e)})
 
 
 @app.delete(
@@ -134,3 +136,32 @@ async def deleteCart(
             return JSONResponse(status_code=200, content={"message": "success"})
     except Exception:
         return JSONResponse(status_code=400, content={"message": "fail"})
+    
+
+@app.put(
+    "/api/v1/order/status/update",
+    description="주문 상태 변경",
+    status_code=status.HTTP_200_OK, response_class=JSONResponse,
+    responses={
+        200: {"description": "성공"},
+        400: {"description": "실패"},
+        401: {"description": "로그인이 필요합니다."}
+    }, tags=["order"]
+)
+async def updateOrderStatus(
+    store_code: str, product_id: str, product_status: bool,
+    temp: Annotated[User, Depends(getCurrentUser)]
+):
+    try:
+        with sessionFix() as session:
+            totalPrice = 0
+            orderData = OrderCommands().read(session, OrderTable, product_id=product_id, store_cdoe=store_code)
+            for i in orderData:
+                if not i.product_status:
+                    totalPrice += i.product_price * i.product_count
+            OrderCommands().updateStatus(session, OrderTable,
+                                   user_id=temp.username, product_id=product_id, status=product_status, store_code=store_code)
+            StocksCommands().updateStoreTotalPrice(session, StoreTable, store_code=store_code, total_price=totalPrice)
+            return JSONResponse(status_code=200, content={"message": "success"})
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"message": str(e)})
