@@ -122,6 +122,9 @@ async def addStocksTemp(
     stock_images: List[UploadFile] = File(...)
 ):
     try:
+        user = UserCommands().read(session, UserTable, id=temp.username)
+        if user.user_type == 0:
+            return JSONResponse(status_code=400, content={"message": "UnAuthorized"})
         with sessionFix() as session:
             user = UserCommands().read(session, UserTable, id=temp.username)
             if user.user_type == 0:
@@ -184,7 +187,6 @@ async def deleteStocksImages(store_code: str, stock_id: str, stock_images: str, 
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": str(e)})
 
-
 # 장바구니 목록
 @app.get(
     "/api/v1/stocks/list", description="특정 상점의 전체 상품 목록 & 특정 상품 조회",
@@ -229,6 +231,9 @@ async def stocksList(store_code: str, stock_id: Union[str, None] = None):
 )
 async def updateStocks(stocks: Stocks, temp: Annotated[User, Depends(getCurrentUser)]):
     try:
+        user = UserCommands().read(session, UserTable, id=temp.username)
+        if user.user_type == 0:
+            return JSONResponse(status_code=400, content={"message": "UnAuthorized"})
         with sessionFix() as session:
             user = UserCommands().read(session, UserTable, id=temp.username)
             if user.user_type == 0:
@@ -313,6 +318,9 @@ async def deleteStocks(store_code: str, stock_id, temp: Annotated[User, Depends(
 )
 async def addStore(store: Store, temp: Annotated[User, Depends(getCurrentUser)]):
     try:
+        user = UserCommands().read(session, UserTable, id=temp.username)
+        if user.user_type == 0:
+            return JSONResponse(status_code=400, content={"message": "UnAuthorized"})
         with sessionFix() as session:
             user = UserCommands().read(session, UserTable, id=temp.username)
             if user.user_type == 0:
@@ -368,6 +376,9 @@ async def stores(store_code: Union[str, None] = None, store_status: Union[bool, 
 )
 async def storeUsers(temp: Annotated[User, Depends(getCurrentUser)], store_code: str, user_id: Union[str, None] = None):
     try:
+        user = UserCommands().read(session, UserTable, id=temp.username)
+        if user.user_type == 0:
+            return JSONResponse(status_code=400, content={"message": "UnAuthorized"})
         with sessionFix() as session:
             user = UserCommands().read(session, UserTable, id=temp.username)
             if user.user_type == 0:
@@ -398,6 +409,9 @@ async def storeUsers(temp: Annotated[User, Depends(getCurrentUser)], store_code:
 )
 async def updateStore(store: Store, temp: Annotated[User, Depends(getCurrentUser)]):
     try:
+        user = UserCommands().read(session, UserTable, id=temp.username)
+        if user.user_type == 0:
+            return JSONResponse(status_code=400, content={"message": "UnAuthorized"})
         with sessionFix() as session:
             user = UserCommands().read(session, UserTable, id=temp.username)
             if user.user_type == 0:
@@ -427,6 +441,9 @@ async def updateStore(store: Store, temp: Annotated[User, Depends(getCurrentUser
 )
 async def updateStoreUser(storeUser: StoreUser, temp: Annotated[User, Depends(getCurrentUser)]):
     try:
+        user = UserCommands().read(session, UserTable, id=temp.username)
+        if user.user_type == 0:
+            return JSONResponse(status_code=400, content={"message": "UnAuthorized"})
         with sessionFix() as session:
             user = UserCommands().read(session, UserTable, id=temp.username)
             if user.user_type == 0:
@@ -440,6 +457,5 @@ async def updateStoreUser(storeUser: StoreUser, temp: Annotated[User, Depends(ge
                 return {"message": "success"}
             else:
                 return HTTPException(status_code=400, detail="fail")
-
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": str(e)})
