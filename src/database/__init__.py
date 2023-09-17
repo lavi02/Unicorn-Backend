@@ -1,5 +1,4 @@
-import json
-import os
+import json, os
 from dependency_injector import providers, containers
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -71,9 +70,4 @@ redis_client = container.redis_client()
 
 def get_db():
     db = container.SessionLocal()
-    try:
-        yield db
-    except Exception as e:
-        db().rollback()
-    finally:
-        db().close()
+    return db()

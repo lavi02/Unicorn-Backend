@@ -1,4 +1,4 @@
-from fastapi import status, Depends, HTTPException
+from fastapi import status, Depends
 from datetime import timedelta
 from fastapi.responses import JSONResponse
 from dependency_injector.wiring import inject
@@ -7,7 +7,7 @@ from typing_extensions import Annotated
 
 from src.services.util.hash import (
     hashData, secret_key, ALGORITHM,
-    ACCESS_TOKEN_EXPIRE_MINUTES,
+    ACCESS_TOKEN_EXPIRE_MINUTES, UserToken,
     jwt, JWTError, redisData, getCurrentUser
 )
 from src.database.__init__ import get_db, redis_client
@@ -15,23 +15,15 @@ from src.database.users.user import UserTable, User
 from src.services.crud.users.user import UserCommands
 from src.services.__init__ import app
 
-
-async def get_current_user(token: str, session, redis_client):
-    try:
-        sessionUID = await getCurrentUser(token, session, redis_client)
-        return sessionUID
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=str(e))
-
 #############################################################################################################
 
 
 @app.post(
     "/api/v1/user/token", description="유저 토큰 조회",
-    tags=["user"],
-    name="유저 토큰 조회",
+    tags=["user"], name="유저 토큰 조회",
     include_in_schema=False
 )
+@inject
 async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], session=Depends(get_db)):
     try:
         redisSession = redisData(redis_client)
@@ -47,7 +39,7 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], sess
             )
 
             refreshToken = hashData.create_refresh_token(user_id=user.user_id)
-            if redisSession.setData(form_data.username, str(access_token), 600):
+            if redisSession.setData(form_data.username, access_token, 600):
                 if redisSession.setData(form_data.username+"_refresh_token", str(refreshToken), 86400):
                     return {"access_token": access_token, "refresh_token": refreshToken}
                 else:
@@ -95,7 +87,7 @@ async def users(session=Depends(get_db)):
 async def login(id: str, pw: str):
     form_data = OAuth2PasswordRequestForm(username=id, password=pw)
     try:
-        response = await token(form_data)
+        response = await token(form_data, get_db())
         if "access_token" in response and "refresh_token" in response:
             return JSONResponse(status_code=200, content={"message": "success", "data": response})
         else:
@@ -111,16 +103,17 @@ async def login(id: str, pw: str):
 )
 @inject
 async def logout(
-    token: str = Depends(get_current_user),
+    token: UserToken = Depends(getCurrentUser),
     session=Depends(get_db)
 ):
     try:
-        sessionUID = await getCurrentUser(token, session, redis_client)
+        sessionUID = await getCurrentUser(token=token, session=session)
 
         redisSession = redisData(redis_client)
         result = redisSession.deleteData(sessionUID.username)
 
         if result == 1:
+            result = redisSession.deleteData(sessionUID.username+"_refresh_token")
             return JSONResponse(status_code=200, content={"message": "success"})
         else:
             return JSONResponse(status_code=401, content={"message": "unauthorized"})
@@ -131,17 +124,12 @@ async def logout(
 
 @app.get(
     "/api/v1/user/check", description="세션 확인",
-    status_code=status.HTTP_200_OK, response_class=JSONResponse,
-    responses={
-        200: {"description": "True"},
-        400: {"description": "False"}
-    }, tags=["develop"]
+    tags=["develop"], response_class=JSONResponse,
 )
-async def check(token: str = Depends(get_current_user), session=Depends(get_db)):
+async def check(token: UserToken = Depends(getCurrentUser)):
     try:
         redisSession = redisData(redis_client)
-        sessionUID = await getCurrentUser(token, session, redis_client)
-        if not redisSession.getData(sessionUID.username):
+        if not redisSession.getData(token.username):
             try:
                 return JSONResponse(status_code=401, content={"message": "session not found"})
             except Exception as e:
@@ -194,6 +182,7 @@ async def refresh_access_token(refresh_token: str, session=Depends(get_db)):
     "/api/v1/user/register", description="유저 등록", response_class=JSONResponse,
     tags=["user"], name="유저 등록"
 )
+@inject
 async def create(user: User, session=Depends(get_db)):
     try:
         user.user_pw = hashData.get_password_hash(user.user_pw)
@@ -209,6 +198,7 @@ async def create(user: User, session=Depends(get_db)):
             user_phone=user.user_phone
         )
         result = UserCommands().create(session=session, target=new_user)
+        print(result)
         if result == None:
             return JSONResponse(status_code=200, content={"message": "success"})
         else:

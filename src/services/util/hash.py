@@ -11,7 +11,7 @@ from dependency_injector.wiring import inject, Provide
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
-from src.database.__init__ import container, redis_client
+from src.database.__init__ import container, redis_client, get_db
 from src.services.crud.users.user import UserCommands, UserTable
 
 secret_key = urandom(32)
@@ -61,7 +61,7 @@ class hashData():
 
     @staticmethod
     @inject
-    def verify_token(token: str, session: Session = Provide[container.SessionLocal]):
+    def verify_token(token: str = Depends(oauth2Schema), session: Session = Depends(get_db)):
         credentialsException = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
@@ -84,17 +84,20 @@ class hashData():
 
 @inject
 async def getCurrentUser(
-    request: Request,
-    session: Session = Provide[container.SessionLocal]
+    session: Session = Depends(get_db),
+    token: UserToken = Depends(hashData().verify_token)
 ):
-    token = request.headers.get("Authorization")
     if not token:
         raise HTTPException(status_code=401, detail="Token not found")
-    user_token = hashData.verify_token(token, session)
+    user_token = hashData.verify_token(token.token, session)
     redisSession = redisData(redis_client)
     storedToken = redisSession.getData(user_token.username).decode("utf-8")
+
+    if not storedToken:
+        raise HTTPException(status_code=401, detail="Token not found")
     try:
-        if storedToken == token:
+        
+        if storedToken == token.token:
             return user_token
         else:
             raise HTTPException(status_code=401, detail="Token is invalid or expired")
