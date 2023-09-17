@@ -1,7 +1,7 @@
 from src.database.stores.user import StoreUserTable
 from dependency_injector.wiring import inject
 from sqlalchemy.orm import Session
-# store.store_code is foreign key
+
 class StoreUserCommands:
     @inject
     def create(self, session: Session, target: StoreUserTable):
