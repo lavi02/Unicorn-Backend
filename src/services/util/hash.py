@@ -1,17 +1,17 @@
 from os import urandom
-import redis
+import redis, random, string
 
 from passlib.hash import oracle10
 from datetime import datetime, timedelta, timezone
 from typing import Union
 
-from fastapi import HTTPException, status, Depends, Request
+from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
-from dependency_injector.wiring import inject, Provide
+from dependency_injector.wiring import inject
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
-from src.database.__init__ import container, redis_client, get_db
+from src.database.__init__ import redis_client, get_db
 from src.services.crud.users.user import UserCommands, UserTable
 
 secret_key = urandom(32)
@@ -117,4 +117,9 @@ class redisData:
 
     def deleteData(self, key: str):
         return self.conn.delete(key)
+    
+def generate_random_string(length):
+    characters = string.ascii_uppercase + string.digits
+    random_string = ''.join(random.sample(characters, length))
+    return random_string
 

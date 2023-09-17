@@ -11,7 +11,7 @@ from src.services.util.hash import (
     jwt, JWTError, redisData, getCurrentUser
 )
 from src.database.__init__ import get_db, redis_client
-from src.database.users.user import UserTable, User
+from src.database.users.user import UserTable, User, updateUser
 from src.services.crud.users.user import UserCommands
 from src.services.__init__ import app
 
@@ -70,7 +70,7 @@ async def users(session=Depends(get_db)):
 
         if type(userData) == str:
             return JSONResponse(status_code=400, content={"message": userData})
-        
+
         for user in userData:
             userList.append({
                 "user_name": user.user_name,
@@ -113,7 +113,8 @@ async def logout(
         result = redisSession.deleteData(sessionUID.username)
 
         if result == 1:
-            result = redisSession.deleteData(sessionUID.username+"_refresh_token")
+            result = redisSession.deleteData(
+                sessionUID.username+"_refresh_token")
             return JSONResponse(status_code=200, content={"message": "success"})
         else:
             return JSONResponse(status_code=401, content={"message": "unauthorized"})
@@ -199,6 +200,53 @@ async def create(user: User, session=Depends(get_db)):
         )
         result = UserCommands().create(session=session, target=new_user)
         print(result)
+        if result == None:
+            return JSONResponse(status_code=200, content={"message": "success"})
+        else:
+            return JSONResponse(status_code=400, content={"message": result})
+    except Exception as e:
+        raise JSONResponse(status_code=400, content={"message": str(e)})
+    
+@app.put(
+    "/api/v1/user/update", description="유저 정보 수정", response_class=JSONResponse,
+    tags=["user"], name="유저 정보 수정"
+)
+@inject
+async def update(user: updateUser, token: UserToken = Depends(getCurrentUser), session=Depends(get_db)):
+    try:
+        userData = UserCommands().read(session=session, where=UserTable, id=token.username)
+        if userData == None:
+            return JSONResponse(status_code=200, content={"message": "user not found"})
+
+        new_user = UserTable(
+            user_name=user.user_name if user.user_name != None else userData.user_name,
+            user_id=token.username,
+            user_pw=user.user_pw if user.user_pw != None else userData.user_pw,
+            user_email=user.user_email if user.user_email != None else userData.user_email,
+            user_type=user.user_type if user.user_type != None else userData.user_type,
+            user_phone=user.user_phone if user.user_phone != None else userData.user_phone,
+        )
+
+        result = UserCommands().update(session=session, where=UserTable, target=new_user)
+        if result == None:
+            return JSONResponse(status_code=200, content={"message": "success"})
+        else:
+            return JSONResponse(status_code=400, content={"message": result})
+    except Exception as e:
+        raise JSONResponse(status_code=400, content={"message": str(e)})
+    
+@app.delete(
+    "/api/v1/user/delete", description="유저 삭제", response_class=JSONResponse,
+    tags=["user"], name="유저 삭제"
+)
+@inject
+async def delete(token: UserToken = Depends(getCurrentUser), session=Depends(get_db)):
+    try:
+        userData = UserCommands().read(session=session, where=UserTable, id=token.username)
+        if userData == None:
+            return JSONResponse(status_code=200, content={"message": "user not found"})
+
+        result = UserCommands().delete(session=session, where=UserTable, user_id=token.username)
         if result == None:
             return JSONResponse(status_code=200, content={"message": "success"})
         else:

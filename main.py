@@ -2,6 +2,7 @@ from src.services.__init__ import app
 from fastapi.responses import RedirectResponse
 
 # router
+from src.api.stores.route import *
 from src.api.users.route import *
 
 @app.get("/")

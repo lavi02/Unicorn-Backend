@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Union
 from sqlalchemy import Column, String, Text, Integer, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -23,3 +24,10 @@ class User(BaseModel):  # 유저
     user_email: str
     user_type: int
     user_phone: str
+
+class updateUser(BaseModel):  
+    user_name: Union[str, None] = None
+    user_pw: Union[str, None] = None
+    user_email: Union[str, None] = None
+    user_phone: Union[str, None] = None
+    user_type: Union[int, None] = None

@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Union
 from sqlalchemy import Column, String, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -13,6 +14,7 @@ class StoreTable(Base):
 
 
 class Store(BaseModel):
-    store_code: str
     store_name: str
+    store_image: Union[str, None] = None
     store_status: bool = True
+    table_count: int = 0
