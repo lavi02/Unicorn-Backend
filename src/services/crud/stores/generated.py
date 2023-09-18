@@ -3,7 +3,7 @@ from dependency_injector.wiring import inject
 from sqlalchemy.orm import Session
 
 # store.store_code is foreign key
-class TableCommands:
+class GeneratedCommands:
     @inject
     def create(self, session: Session, target: GeneratedTable):
         try:
@@ -33,7 +33,7 @@ class TableCommands:
         # change DB Data
         try:
             session.query(where).filter_by(store_code=target.store_code).filter_by(table_number=target.table_number).update({
-                GeneratedTable.table_status: target.table_status
+                where.is_valid: target.is_valid
             })
             session.commit()
             return None

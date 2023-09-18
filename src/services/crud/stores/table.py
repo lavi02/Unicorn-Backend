@@ -33,7 +33,7 @@ class TableCommands:
         # change DB Data
         try:
             session.query(where).filter_by(store_code=target.store_code).filter_by(table_number=target.table_number).update({
-                StoreTableData.table_status: target.table_status
+                StoreTableData.is_valid : target.is_valid
             })
             session.commit()
             return None

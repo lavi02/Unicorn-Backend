@@ -34,10 +34,7 @@ class StoreCommands:
         try:
             tmpSession.query(where).filter_by(store_code=target.store_code).update({
                 StoreTable.store_name: target.store_name,
-                StoreTable.store_description: target.store_description,
-                StoreTable.store_category: target.store_category,
                 StoreTable.store_status: target.store_status,
-                StoreTable.store_images: target.store_images
             })
             tmpSession.commit()
             return None
