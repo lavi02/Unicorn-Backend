@@ -18,3 +18,9 @@ class Store(BaseModel):
     store_image: Union[str, None] = None
     store_status: bool = True
     table_count: int = 0
+
+
+class reqStoreData(BaseModel):
+    store_code: str
+    store_name: Union[str, None] = None
+    store_status: bool = True

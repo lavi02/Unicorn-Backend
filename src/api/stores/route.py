@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from dependency_injector.wiring import inject
 from typing import Union
 
-from src.database.stores.store import StoreTable, Store
+from src.database.stores.store import StoreTable, Store, reqStoreData
 from src.database.stores.tables.table import StoreTableData
 from src.database.users.user import UserTable
 
@@ -66,11 +66,11 @@ async def addStore(store: Store, token: UserToken = Depends(getCurrentUser), ses
             for i in range(store.table_count):
                 newTables.append(StoreTableData(
                     store_code=store_code,
-                    table_number=i+1,
-                    table_status=0
+                    table_number=i+1
                 ))
+            print(newTables)
 
-            if TableCommands().create(session, newTables) == None:
+            if TableCommands().createMultiple(session, newTables) == None:
                 return JSONResponse(status_code=200, content={"message": "success", "store_code": store_code})
             else:
                 return JSONResponse(status_code=400, content={"message": "fail"})
@@ -86,15 +86,16 @@ async def addStore(store: Store, token: UserToken = Depends(getCurrentUser), ses
     tags=["store"], name="상점 정보 수정",
 )
 @inject
-async def updateStore(store: Store, token: UserToken = Depends(getCurrentUser), session=Depends(get_db)):
+async def updateStore(store: reqStoreData, token: UserToken = Depends(getCurrentUser), session=Depends(get_db)):
     try:
         user = UserCommands().read(session=session, where=UserTable, id=token.username)
         if user.user_type == 0:
             return JSONResponse(status_code=400, content={"message": "Unauthorized"})
 
-        new_store = StoreTable(
+        new_store = reqStoreData(
             store_code=store.store_code,
-            store_name=store.store_name
+            store_name=store.store_name,
+            store_status=store.store_status
         )
         if StoreCommands().update(session, where=StoreTable, target=new_store) == None:
             return JSONResponse(status_code=200, content={"message": "success"})
