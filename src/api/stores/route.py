@@ -91,9 +91,9 @@ async def updateStore(store: Store, token: UserToken = Depends(getCurrentUser), 
         user = UserCommands().read(session=session, where=UserTable, id=token.username)
         if user.user_type == 0:
             return JSONResponse(status_code=400, content={"message": "Unauthorized"})
-        store_code = store.store_code
+
         new_store = StoreTable(
-            store_code=store_code,
+            store_code=store.store_code,
             store_name=store.store_name
         )
         if StoreCommands().update(session, where=StoreTable, target=new_store) == None:
