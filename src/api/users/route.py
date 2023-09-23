@@ -84,10 +84,11 @@ async def users(session=Depends(get_db)):
 
 
 @app.get("/api/v1/user/login", description="유저 로그인", tags=["user"], name="유저 로그인")
-async def login(id: str, pw: str):
+@inject
+async def login(id: str, pw: str, session=Depends(get_db)):
     form_data = OAuth2PasswordRequestForm(username=id, password=pw)
     try:
-        response = await token(form_data, get_db())
+        response = await token(form_data, session)
         if "access_token" in response and "refresh_token" in response:
             return JSONResponse(status_code=200, content={"message": "success", "data": response})
         else:
@@ -127,6 +128,7 @@ async def logout(
     "/api/v1/user/check", description="세션 확인",
     tags=["develop"], response_class=JSONResponse,
 )
+@inject
 async def check(token: UserToken = Depends(getCurrentUser)):
     try:
         redisSession = redisData(redis_client)
@@ -206,7 +208,8 @@ async def create(user: User, session=Depends(get_db)):
             return JSONResponse(status_code=400, content={"message": result})
     except Exception as e:
         raise JSONResponse(status_code=400, content={"message": str(e)})
-    
+
+
 @app.put(
     "/api/v1/user/update", description="유저 정보 수정", response_class=JSONResponse,
     tags=["user"], name="유저 정보 수정"
@@ -234,7 +237,8 @@ async def update(user: updateUser, token: UserToken = Depends(getCurrentUser), s
             return JSONResponse(status_code=400, content={"message": result})
     except Exception as e:
         raise JSONResponse(status_code=400, content={"message": str(e)})
-    
+
+
 @app.delete(
     "/api/v1/user/delete", description="유저 삭제", response_class=JSONResponse,
     tags=["user"], name="유저 삭제"
@@ -246,7 +250,8 @@ async def delete(token: UserToken = Depends(getCurrentUser), session=Depends(get
         if userData == None:
             return JSONResponse(status_code=200, content={"message": "user not found"})
 
-        result = UserCommands().delete(session=session, where=UserTable, user_id=token.username)
+        result = UserCommands().delete(
+            session=session, where=UserTable, user_id=token.username)
         if result == None:
             return JSONResponse(status_code=200, content={"message": "success"})
         else:

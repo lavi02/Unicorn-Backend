@@ -19,21 +19,31 @@ from src.services.util.hash import (
 )
 from src.services.__init__ import app
 from src.database.__init__ import get_db
-    
+
+
 @app.get(
     "/api/v1/store/list", description="상점 정보 가져오기",
     tags=["store"], name="상점 정보 가져오기",
 )
 @inject
-async def getStore(store_code: Union[str, None], session=Depends(get_db)):
+async def getStore(store_code: str = None, session=Depends(get_db)):
     try:
         store = StoreCommands().read(session=session, where=StoreTable, store_code=store_code)
         if store == None:
             return JSONResponse(status_code=400, content={"message": "fail"})
         else:
-            return JSONResponse(status_code=200, content={"message": "success", "store": store})
+            storeList = []
+            for i in store:
+                storeList.append({
+                    "store_code": i.store_code,
+                    "store_name": i.store_name,
+                    "store_status": i.store_status
+                })
+
+            return JSONResponse(status_code=200, content={"message": "success", "store": storeList})
     except Exception as e:
         return JSONResponse(status_code=401, content={"message": str(e)})
+
 
 @app.post(
     "/api/v1/store/add", description="상점 추가",
@@ -69,7 +79,8 @@ async def addStore(store: Store, token: UserToken = Depends(getCurrentUser), ses
 
     except Exception as e:
         return JSONResponse(status_code=401, content={"message": str(e)})
-    
+
+
 @app.put(
     "/api/v1/store/update", description="상점 정보 수정",
     tags=["store"], name="상점 정보 수정",
@@ -91,7 +102,8 @@ async def updateStore(store: Store, token: UserToken = Depends(getCurrentUser), 
             return JSONResponse(status_code=400, content={"message": "fail"})
     except Exception as e:
         return JSONResponse(status_code=401, content={"message": str(e)})
-    
+
+
 @app.delete(
     "/api/v1/store/delete", description="상점 삭제",
     tags=["store"], name="상점 삭제",
