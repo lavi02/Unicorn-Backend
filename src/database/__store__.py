@@ -40,6 +40,7 @@ class Store(BaseModel):
     store_code: str
     store_name: str
     store_status: Union[bool, None] = None
+    total_price: int
 
 class StoreUser(BaseModel):
     store_code: str
