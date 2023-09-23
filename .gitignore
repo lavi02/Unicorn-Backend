@@ -4,3 +4,4 @@ include/
 /lib
 __pycache__/
 src/database/__conn__.py
+.venv/

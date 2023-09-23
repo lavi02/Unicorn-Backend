@@ -6,9 +6,10 @@ from .__conn__ import *
 
 class CartTable(Base): # 장바구니 테이블
     __tablename__ = 'cart' #테이블 이름
+    cart_id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String(50), nullable=False) # 아이디
     table_number = Column(String(50), nullable=False) # 테이블 번호
-    product_id = Column(String(50), primary_key=True, nullable=False) # 상품 아이디
+    product_id = Column(String(50), nullable=False) # 상품 아이디
     product_price = Column(Integer, nullable=False) # 상품 가격
     product_count = Column(Integer, nullable=False) # 상품 개수
     product_option = Column(JSON, nullable=True) # 상품 옵션
