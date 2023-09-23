@@ -1,15 +1,13 @@
 {
     "db": {
-        "host": "localhost",
-        "host_real": "172.31.49.189",
+        "host": "172.31.49.189",
         "port": 3306,
         "name": "develop",
         "username": "dev",
-        "password": "localplayer0",
-        "password_real": "h311on31ghb0r"
+        "password": "h311on31ghb0r"
     },
     "redis": {
-        "host": "localhost",
+        "host": "172.31.49.189",
         "port": 6379,
         "name": 0
     }

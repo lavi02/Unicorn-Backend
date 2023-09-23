@@ -1,4 +1,5 @@
-import json, os
+import json
+import os
 from dependency_injector import providers, containers
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -35,13 +36,13 @@ class BaseContainer(containers.DeclarativeContainer):
     config.from_dict(ApplicationSettings().model_dump())
 
     engine = providers.Singleton(
-    create_engine,
-    url=providers.Callable(
-        lambda config: f"mysql+pymysql://{config['db']['username']}:{config['db']['password']}@{config['db']['host']}:{config['db']['port']}/{config['db']['name']}",
-        config=config 
-    ),
-    echo=True,
-)
+        create_engine,
+        url=providers.Callable(
+            lambda config: f"mysql+pymysql://{config['db']['username']}:{config['db']['password']}@{config['db']['host']}:{config['db']['port']}/{config['db']['name']}",
+            config=config
+        ),
+        echo=True,
+    )
 
     SessionLocal = providers.Singleton(
         sessionmaker,
@@ -58,8 +59,11 @@ class BaseContainer(containers.DeclarativeContainer):
     )
 
 
+app_env = os.environ.get('APP_ENV', 'development')
+configName = 'config_dev.json' if app_env == 'development' else 'config.json'
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
-with open(os.path.join(dir_path, '../../config.json'), "r") as f:
+with open(os.path.join(dir_path, f'../../{configName}'), "r") as f:
     config_data = json.load(f)
 
 app_settings = ApplicationSettings(**config_data)
@@ -67,6 +71,7 @@ container = BaseContainer()
 container.config.from_dict(app_settings.model_dump())
 
 redis_client = container.redis_client()
+
 
 def get_db():
     db = container.SessionLocal()
