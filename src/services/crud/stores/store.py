@@ -3,6 +3,8 @@ from dependency_injector.wiring import inject
 from sqlalchemy.orm import Session
 
 # store.store_code is foreign key
+
+
 class StoreCommands:
     @inject
     def create(self, session: Session, target: StoreTable):
@@ -11,7 +13,7 @@ class StoreCommands:
             return session.commit()
         except Exception as e:
             return str(e)
-        
+
     @inject
     def read(self, session: Session, where: StoreTable, store_code=None, store_status=None):
         # store_code, store_status
@@ -28,19 +30,19 @@ class StoreCommands:
         except Exception as e:
             return str(e)
 
-    @inject 
+    @inject
     def update(self, tmpSession, where: StoreTable, target: StoreTable):
         # change DB Data
         try:
             tmpSession.query(where).filter_by(store_code=target.store_code).update({
-                StoreTable.store_name: target.store_name,
+                StoreTable.store_name: target.store_name if target.store_name != None else StoreTable.store_name,
                 StoreTable.store_status: target.store_status,
             })
             tmpSession.commit()
             return None
         except Exception as e:
             return str(e)
-        
+
     @inject
     def delete(self, session: Session, where: StoreTable, store_code: str):
         try:
