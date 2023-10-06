@@ -9,8 +9,8 @@ from src.database.stocks.stock import StocksTable
 import pytz
 from datetime import datetime
 
-Base = declarative_base()
 
+Base = declarative_base()
 
 class OrderTable(Base):
     __tablename__ = 'order'

@@ -13,10 +13,11 @@ Base = declarative_base()
 
 class StocksTable(Base):
     __tablename__ = 'stocks'
+    id = Column(int, autoincrement=True, primary_key=True)
     store_code = Column(String(50), ForeignKey(
         StoreTable.store_code), nullable=False)
     stock_name = Column(String(50), nullable=False)
-    stock_id = Column(String(50), nullable=False, primary_key=True)
+    stock_id = Column(String(50), nullable=False)
     stock_price = Column(Integer, nullable=False)
     stock_description = Column(Text, nullable=True)
     stock_option = Column(JSON, nullable=True)
@@ -29,6 +30,7 @@ class StocksTable(Base):
 
 
 class Stocks(BaseModel):
+    id: int
     store_code: str
     stock_name: str
     stock_id: Union[str, None] = None
